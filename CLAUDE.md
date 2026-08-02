@@ -115,6 +115,19 @@ npm run build   # rebuilds the index, then astro build
 duplicate ids, so a degraded catalog fails CI before deploy. It derives `lastModified` from
 `git log`, so the Pages workflows check out with `fetch-depth: 0`.
 
+**Never regenerate `site/package-lock.json` with a plain `npm install` on Windows.** npm
+resolves optional dependencies against the current platform and drops the Linux-only ones —
+here the top-level `@emnapi/core` and `@emnapi/runtime`. Everything passes locally and then
+CI dies on `npm ci` with `Missing: @emnapi/... from lock file`. Force the target platform
+instead, and delete `node_modules` first so npm resolves from registry metadata rather than
+from the installed tree:
+
+```bash
+cd site && rm -rf node_modules package-lock.json
+npm install --package-lock-only --os=linux --cpu=x64 --libc=glibc
+npm ci   # confirm it still installs on this machine
+```
+
 Evals (pnpm, `evals/`) — model-backed, **local/on-demand only, never in CI**:
 
 ```bash
