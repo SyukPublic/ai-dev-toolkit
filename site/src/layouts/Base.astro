@@ -1,0 +1,46 @@
+---
+import '../styles/global.css';
+
+const {
+  title = 'AI Agentic Development Toolkit',
+  description = 'Searchable catalog of reusable Claude Code plugins, skills, agents, and MCP servers.',
+} = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const repoUrl = 'https://github.com/SyukPublic/ai-dev-toolkit';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href={`${base}/`}>AI Agentic <span>Development Toolkit</span></a>
+      <nav>
+        <a href={repoUrl}>GitHub</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <a href={`${repoUrl}/blob/main/CONTRIBUTING.md`}>Contribute</a>
+      <a href={`${repoUrl}/blob/main/docs/PLUGIN-GUIDELINES.md`}>Plugin guidelines</a>
+      <a href={`${repoUrl}/blob/main/docs/SECURITY.md`}>Security</a>
+      <a href={`${base}/api/index.json`}>Catalog API</a>
+    </footer>
+    <script>
+      document.addEventListener('click', async (ev) => {
+        const btn = (ev.target as HTMLElement).closest('[data-copy]') as HTMLElement | null;
+        if (!btn) return;
+        await navigator.clipboard.writeText(btn.dataset.copy ?? '');
+        const prev = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = prev; }, 1200);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+# Code owners are automatically requested for review on every pull request.
+# Their approval becomes mandatory once "Require review from Code Owners"
+# is enabled in the branch ruleset for `main` (see docs/RELEASES.md).
+
+# Default owner for everything in the repository — Roman Halas
+* @SyukPublic
+
+# Marketplace catalog: changes here publish or remove plugins for all users
+/.claude-plugin/ @SyukPublic
+
+# Release and security policy — release owner approval required
+/docs/RELEASES.md @SyukPublic
+/docs/SECURITY.md @SyukPublic
+/CODEOWNERS @SyukPublic

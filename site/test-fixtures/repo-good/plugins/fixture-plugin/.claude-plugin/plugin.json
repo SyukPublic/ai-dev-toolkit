@@ -1,0 +1,10 @@
+{
+  "name": "fixture-plugin",
+  "displayName": "Fixture Plugin",
+  "version": "1.0.0",
+  "description": "A fixture plugin exercising every artifact type the indexer supports",
+  "author": { "name": "Fixture Owner" },
+  "license": "MIT",
+  "keywords": ["fixture", "testing"],
+  "category": "development"
+}

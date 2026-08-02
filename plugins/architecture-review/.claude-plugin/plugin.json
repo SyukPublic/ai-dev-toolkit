@@ -1,0 +1,10 @@
+{
+  "name": "architecture-review",
+  "displayName": "Architecture Review",
+  "version": "1.0.0",
+  "description": "Read-only architectural auditor agent that reviews layering, dependency direction, and boundary violations",
+  "author": { "name": "Roman Halas" },
+  "license": "MIT",
+  "keywords": ["architecture", "review", "audit", "onion", "read-only"],
+  "dependencies": [{ "name": "engineering-paved-path", "version": "^1.0.0" }]
+}

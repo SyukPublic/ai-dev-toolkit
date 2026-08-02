@@ -1,0 +1,9 @@
+{
+  "name": "fixture-marketplace",
+  "owner": { "name": "Fixture Owner" },
+  "description": "Fixture marketplace used by indexer tests",
+  "metadata": { "pluginRoot": "./plugins" },
+  "plugins": [
+    { "name": "fixture-plugin", "source": "fixture-plugin" }
+  ]
+}

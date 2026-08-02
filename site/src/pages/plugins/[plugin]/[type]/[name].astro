@@ -1,0 +1,68 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import index from '../../../../data/index.json';
+import { readRepoFile } from '../../../../lib/repo.js';
+import { marked } from 'marked';
+import matter from 'gray-matter';
+
+const DIR_BY_TYPE = { skill: 'skills', agent: 'agents', command: 'commands' };
+
+export function getStaticPaths() {
+  const dirByType = { skill: 'skills', agent: 'agents', command: 'commands' };
+  return index.artifacts
+    .filter((a) => dirByType[a.type])
+    .map((a) => ({ params: { plugin: a.plugin, type: dirByType[a.type], name: a.name } }));
+}
+
+const { plugin, type, name } = Astro.params;
+const artifactType = Object.keys(DIR_BY_TYPE).find((k) => DIR_BY_TYPE[k] === type);
+const artifact = index.artifacts.find(
+  (a) => a.type === artifactType && a.plugin === plugin && a.name === name,
+);
+const parent = index.artifacts.find((a) => a.type === 'plugin' && a.name === plugin);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const repoUrl = `https://github.com/${index.marketplace.repo}`;
+
+const raw = readRepoFile(artifact.path);
+const bodyHtml = raw ? marked.parse(matter(raw).content) : null;
+---
+<Base title={`${artifact.displayName} — AI Agentic Development Toolkit`} description={artifact.description}>
+  <nav class="breadcrumb">
+    <a href={`${base}/`}>← All artifacts</a> /
+    <a href={`${base}/plugins/${plugin}/`}>{parent?.displayName ?? plugin}</a>
+  </nav>
+
+  <header class="detail-header">
+    <div class="card-top">
+      <span class={`badge type-${artifact.type}`}>{artifact.type}</span>
+      {artifact.version && <span class="version">plugin v{artifact.version}</span>}
+      <span class="version">updated {artifact.lastModified}</span>
+    </div>
+    <h1>{artifact.displayName}</h1>
+    <p class="lead">{artifact.description}</p>
+  </header>
+
+  <div class="install-box">
+    {artifact.invocation && (
+      <div class="install-row">
+        <code>{artifact.invocation}</code>
+        <button class="copy" data-copy={artifact.invocation}>Copy</button>
+      </div>
+    )}
+    <div class="install-row">
+      <code>{artifact.installCommand}</code>
+      <button class="copy" data-copy={artifact.installCommand}>Copy</button>
+    </div>
+  </div>
+
+  <section class="detail-section">
+    <h2>Definition</h2>
+    {bodyHtml
+      ? <div class="prose" set:html={bodyHtml} />
+      : <p>See the source file for the full definition.</p>}
+  </section>
+
+  <section class="detail-section">
+    <p><a href={`${repoUrl}/blob/main/${artifact.path}`}>View source on GitHub →</a></p>
+  </section>
+</Base>

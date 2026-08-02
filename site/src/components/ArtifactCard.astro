@@ -1,0 +1,29 @@
+---
+const { artifact } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const dirByType = { skill: 'skills', agent: 'agents', command: 'commands' };
+const href =
+  artifact.type === 'plugin'
+    ? `${base}/plugins/${artifact.name}/`
+    : dirByType[artifact.type]
+      ? `${base}/plugins/${artifact.plugin}/${dirByType[artifact.type]}/${artifact.name}/`
+      : `${base}/plugins/${artifact.plugin}/`;
+---
+<article class="card">
+  <div class="card-top">
+    <span class={`badge type-${artifact.type}`}>{artifact.type.replace('-', ' ')}</span>
+    {artifact.version && <span class="version">v{artifact.version}</span>}
+  </div>
+  <h3><a href={href}>{artifact.displayName}</a></h3>
+  <p>{artifact.description}</p>
+  <div class="card-meta">
+    {artifact.type !== 'plugin' && <span>in {artifact.plugin}</span>}
+    {artifact.category && <span>{artifact.category}</span>}
+  </div>
+  {artifact.keywords?.length > 0 && (
+    <div class="chips">
+      {artifact.keywords.slice(0, 4).map((k) => <span class="chip">{k}</span>)}
+    </div>
+  )}
+  <button class="copy" data-copy={artifact.installCommand} title="Copy install command">Copy install</button>
+</article>

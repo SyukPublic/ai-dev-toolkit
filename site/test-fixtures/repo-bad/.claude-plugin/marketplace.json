@@ -1,0 +1,8 @@
+{
+  "name": "fixture-bad-marketplace",
+  "owner": { "name": "Fixture Owner" },
+  "metadata": { "pluginRoot": "./plugins" },
+  "plugins": [
+    { "name": "bad-plugin", "source": "bad-plugin" }
+  ]
+}

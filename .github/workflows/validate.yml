@@ -1,0 +1,20 @@
+name: Validate marketplace
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+      # --strict turns warnings into errors, so a misspelled or misplaced
+      # manifest field fails here rather than silently loading as a no-op.
+      - name: Validate marketplace manifest
+        run: claude plugin validate . --strict
