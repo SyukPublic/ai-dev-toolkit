@@ -1,0 +1,13 @@
+[
+  ["test", "testing", "tests", "unit-test", "e2e", "coverage"],
+  ["docs", "documentation", "readme", "document", "changelog"],
+  ["review", "code-review", "pr-review", "quality"],
+  ["pr", "pull-request", "github", "merge"],
+  ["deploy", "deployment", "release", "ship", "publish"],
+  ["lint", "linting", "format", "formatting", "style"],
+  ["security", "secure", "vulnerability", "audit", "secrets"],
+  ["fix", "bug", "debug", "debugging", "error"],
+  ["ai", "llm", "model", "prompt"],
+  ["mcp", "server", "integration", "tool"],
+  ["refactor", "refactoring", "cleanup", "simplify"]
+]

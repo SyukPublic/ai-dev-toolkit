@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace-manifest.json",
+  "name": "ai-dev-toolkit",
+  "owner": {
+    "name": "Roman Halas",
+    "url": "https://github.com/SyukPublic"
+  },
+  "description": "Reusable Claude Code skills, agents, and MCP servers for any project",
+  "metadata": {
+    "version": "1.1.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "engineering-paved-path",
+      "source": "./plugins/engineering-paved-path",
+      "description": "Curated engineering skills for React, Next.js, Fastify, onion architecture, testing, TypeScript, and security",
+      "category": "development",
+      "author": { "name": "Roman Halas" }
+    },
+    {
+      "name": "research-tools",
+      "source": "./plugins/research-tools",
+      "description": "Read-only research agent that investigates codebases and the web and returns structured, verifiable reports",
+      "category": "development",
+      "author": { "name": "Roman Halas" }
+    },
+    {
+      "name": "architecture-review",
+      "source": "./plugins/architecture-review",
+      "description": "Read-only architectural auditor agent that reviews layering, dependency direction, and boundary violations",
+      "category": "development",
+      "author": { "name": "Roman Halas" }
+    },
+    {
+      "name": "sdd-engineering",
+      "source": "./plugins/sdd-engineering",
+      "description": "Spec-driven development workflow: spec, plan, implement, verify - with run orchestration and retro tooling",
+      "category": "development",
+      "author": { "name": "Roman Halas" }
+    }
+  ]
+}

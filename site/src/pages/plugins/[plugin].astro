@@ -1,0 +1,79 @@
+---
+import Base from '../../layouts/Base.astro';
+import ArtifactCard from '../../components/ArtifactCard.astro';
+import index from '../../data/index.json';
+import { readRepoFile } from '../../lib/repo.js';
+import { marked } from 'marked';
+
+export function getStaticPaths() {
+  return index.artifacts
+    .filter((a) => a.type === 'plugin')
+    .map((a) => ({ params: { plugin: a.name } }));
+}
+
+const { plugin } = Astro.params;
+const artifact = index.artifacts.find((a) => a.type === 'plugin' && a.name === plugin);
+const children = index.artifacts.filter((a) => a.plugin === plugin && a.type !== 'plugin');
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const repoUrl = `https://github.com/${index.marketplace.repo}`;
+
+const readme = readRepoFile(`${artifact.path}/README.md`);
+const changelog = readRepoFile(`${artifact.path}/CHANGELOG.md`);
+const readmeHtml = readme ? marked.parse(readme) : null;
+const changelogHtml = changelog ? marked.parse(changelog) : null;
+const marketplaceAdd = `/plugin marketplace add ${index.marketplace.repo}`;
+---
+<Base title={`${artifact.displayName} — AI Agentic Development Toolkit`} description={artifact.description}>
+  <nav class="breadcrumb"><a href={`${base}/`}>← All artifacts</a></nav>
+
+  <header class="detail-header">
+    <div class="card-top">
+      <span class="badge type-plugin">plugin</span>
+      {artifact.version && <span class="version">v{artifact.version}</span>}
+      {artifact.category && <span class="version">{artifact.category}</span>}
+      <span class="version">updated {artifact.lastModified}</span>
+    </div>
+    <h1>{artifact.displayName}</h1>
+    <p class="lead">{artifact.description}</p>
+  </header>
+
+  <div class="install-box">
+    <div class="install-row">
+      <code>{marketplaceAdd}</code>
+      <button class="copy" data-copy={marketplaceAdd}>Copy</button>
+    </div>
+    <div class="install-row">
+      <code>{artifact.installCommand}</code>
+      <button class="copy" data-copy={artifact.installCommand}>Copy</button>
+    </div>
+  </div>
+
+  {children.length > 0 && (
+    <section class="detail-section">
+      <h2>What's inside</h2>
+      <div class="card-grid">
+        {children.map((child) => <ArtifactCard artifact={child} />)}
+      </div>
+    </section>
+  )}
+
+  {readmeHtml && (
+    <section class="detail-section">
+      <h2>README</h2>
+      <div class="prose" set:html={readmeHtml} />
+    </section>
+  )}
+
+  {changelogHtml && (
+    <section class="detail-section">
+      <details class="changelog">
+        <summary>Changelog</summary>
+        <div class="prose" set:html={changelogHtml} />
+      </details>
+    </section>
+  )}
+
+  <section class="detail-section">
+    <p><a href={`${repoUrl}/tree/main/${artifact.path}`}>View source on GitHub →</a></p>
+  </section>
+</Base>
