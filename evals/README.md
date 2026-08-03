@@ -92,7 +92,8 @@ is always safe.
 
 | Var | Default | Meaning |
 |---|---|---|
-| `EVAL_MODEL` | `claude-haiku-4-5` | model under test |
+| `EVAL_MODEL` | `claude-haiku-4-5` | model under test for the judged tiers |
+| `EVAL_ACTIVATION_MODEL` | `claude-sonnet-5` | model for activation cases only (see below); an explicit `EVAL_MODEL` overrides it |
 | `EVAL_JUDGE_MODEL` | `claude-sonnet-5` | judge (stronger family to soften self-preference) |
 | `EVAL_MAX_TURNS` | `8` | default turn cap per session |
 | `EVAL_CONFIG` | `candidate` | `baseline` = don't inject the artifact (benchmark) |
@@ -132,14 +133,32 @@ not exist in `workspace-template/` (a skill cannot engage on a missing file, and
 obeying the skill's own gate by refusing), or that workspace's `CLAUDE.md` may route the question
 elsewhere. `results/outputs/` holds the trace that settles it.
 
-Suspect the **model** third, and check it before editing any description. Activation splits sharply
-by subject at the default `EVAL_MODEL`: framework- and version-specific skills (React, Next.js,
-Fastify, React Testing Library) engage on `claude-haiku-4-5` in every recorded run, while broad
-foundational ones (`security`, `typescript-expert`, `onion-architecture`) sit at 11-32% — and a
-miss there is not a trigger failure but the model answering competently from its own knowledge
-(median 967 output tokens on a miss, 12 on an engagement). Re-running the same pair on
-`EVAL_MODEL=claude-sonnet-5` separates a weak description from a weak model in one probe: for
-`security` it moved 30%/10% to 100%/100% with no content change at all.
+### Why activation runs on a stronger model
+
+Activation asks whether a skill gets **selected**, which is a judgement task, and the cheap default
+cannot perform it for broad subjects. Measured across every activation row recorded at
+`claude-haiku-4-5`: framework- and version-specific skills engage in **every** run
+(`react-best-practices` 11/11, `react-testing-library` 9/9, `fastify` 4/4, `next` 4/4,
+`workflow-retro` 6/6), while broad foundational ones sit at **11-32%** (`security` 12/37,
+`typescript-expert` 3/13, `run-plan` 5/27, `onion-architecture` 2/18). A miss there is not a trigger
+failure: median **967** output tokens and no tool calls at all in 29 of 78 misses — the model writing
+a full competent answer instead of consulting anything. An engagement is a median of 12 tokens.
+
+On the `security` pair, one variable changed: haiku scored **4/20** correct outcomes, sonnet
+**10/10**, same description. Those reds measured the model.
+
+So `EVAL_ACTIVATION_MODEL` defaults to `claude-sonnet-5` for this tier only. Two reasons it is safe
+here and not for the rest: activation runs **no judge** (its cases have no `practices` — the verdict
+is the trace), so a stronger model cannot create the self-preference that `EVAL_JUDGE_MODEL` exists
+to avoid; and activation is the cheaper half — 26 short cases that early-stop on engagement, against
+51 judged quality cases with 4k+ token outputs. Raising `EVAL_MODEL` itself would put the model under
+test in the judge's own family for all 51.
+
+Two consequences worth knowing. The floor and the summary pool history **per model**, so switching
+this makes them start from n=0 on the new model — the gate stays quiet until a case has
+`EVAL_ACTIVATION_FAIL_N` rows on it. And a red in the judged tiers is still worth a
+`EVAL_MODEL=claude-sonnet-5` probe before you treat it as a content gap: `security`'s NoSQL
+operator-injection miss is 1/8 on haiku and 3/3 on sonnet.
 
 Activation cases **hard-block subagent spawning**, and must keep doing so. A dispatched subagent
 preloads paved-path skills in its own frontmatter and its file reads land in the *parent* trace, so

@@ -13,7 +13,7 @@
 import { mkdirSync, writeFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { GREEN, RED, DIM, RESET, rateColor } from "./ansi.js";
-import { ACTIVATION_FLOOR_FAIL_N, EVAL_MODEL, REPEAT_WARN_SESSIONS } from "./config.js";
+import { ACTIVATION_FLOOR_FAIL_N, EVAL_ACTIVATION_MODEL, REPEAT_WARN_SESSIONS } from "./config.js";
 import { gitInfo } from "./git.js";
 import { countTests, runVitestOnce } from "./run-vitest.js";
 import { RESULTS_DIR } from "./artifacts/paths.js";
@@ -181,13 +181,13 @@ async function main(): Promise<void> {
   // engages 1 run in 17 (measured: onion-architecture) produces an all-zero series of 5 about 73%
   // of the time, and failing on that would make the gate noise. Scoped to the cases this invocation
   // actually ran, so it never fails on an unrelated old series.
-  const lifetime = loadRecords(0).filter((r) => (r.model ?? "unknown") === EVAL_MODEL);
+  const lifetime = loadRecords(0).filter((r) => (r.model ?? "unknown") === EVAL_ACTIVATION_MODEL);
   const breaches = activationFloorBreaches(records, lifetime, ACTIVATION_FLOOR_FAIL_N);
   if (breaches.length) {
     console.log(`\n${RED}Activation floor: ${breaches.length} case(s) have NEVER engaged${RESET}`);
     for (const b of breaches) {
       console.log(
-        `  ${RED}0/${b.engaged.total}${RESET} lifetime (${EVAL_MODEL})  ${b.skill}  ` +
+        `  ${RED}0/${b.engaged.total}${RESET} lifetime (${EVAL_ACTIVATION_MODEL})  ${b.skill}  ` +
           `${DIM}${b.nodeid.split(" > ").slice(-1)[0]}${RESET}`,
       );
     }

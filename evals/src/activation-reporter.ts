@@ -12,7 +12,7 @@
  * Nothing here calls a model; it only reads results/records.jsonl.
  */
 
-import { EVAL_MODEL, ACTIVATION_FLOOR_MIN_N } from "./config.js";
+import { EVAL_ACTIVATION_MODEL, ACTIVATION_FLOOR_MIN_N } from "./config.js";
 import { GREEN, RED, YELLOW, DIM, RESET, rateColor } from "./ansi.js";
 import {
   activationSeries,
@@ -50,7 +50,7 @@ export default class ActivationReporter {
     const polarity: Record<string, boolean> = {};
     for (const id of nodeids) polarity[id] = fresh[id].shouldActivate;
     const history = engagementByOutcome(
-      loadRecords(0).filter((r) => (r.model ?? "unknown") === EVAL_MODEL),
+      loadRecords(0).filter((r) => (r.model ?? "unknown") === EVAL_ACTIVATION_MODEL),
       polarity,
     );
 
@@ -70,7 +70,7 @@ export default class ActivationReporter {
       const all: Series | undefined = history[id];
       if (all && all.total > a.engaged.total) {
         const c = rateColor(a.shouldActivate ? all.rate : 1 - all.rate);
-        console.log(`      all recorded (${EVAL_MODEL}): ${c}${all.passed}/${all.total} ${pct(all.rate)}${RESET}`);
+        console.log(`      all recorded (${EVAL_ACTIVATION_MODEL}): ${c}${all.passed}/${all.total} ${pct(all.rate)}${RESET}`);
       }
       // Read the floor against the longest series available — this run alone is N=1, which can
       // never distinguish variance from a case that cannot pass.

@@ -9,7 +9,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, expect } from "vitest";
-import { DEFAULT_THRESHOLD, SPAWN_TOOLS, WORKFLOW_ALLOWED_TOOLS } from "../config.js";
+import { DEFAULT_THRESHOLD, EVAL_ACTIVATION_MODEL, SPAWN_TOOLS, WORKFLOW_ALLOWED_TOOLS } from "../config.js";
 import { skillTask, agentTask, workflowTask } from "../tasks.js";
 import { runClaude, type Result, type RunOptions } from "../runtime/run-claude.js";
 import { patternMatch, type ExpectedPattern } from "../scoring/pattern-match.js";
@@ -151,6 +151,11 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
         const skill = c.skill;
         const result = await workflowTask(c.prompt, {
           maxTurns: c.maxTurns,
+          // Activation is a judgement task the cheap default cannot perform for broad subjects, and
+          // this tier runs no judge, so a stronger model here costs no impartiality. See
+          // EVAL_ACTIVATION_MODEL. The resolved value lands on every record, so mixed-model ledgers
+          // stay separable.
+          model: EVAL_ACTIVATION_MODEL,
           // No Task/Agent here: activation is measured on the session itself (a Skill call or a
           // SKILL.md read), so a spawned subagent proves nothing and only burns wall-clock — a
           // near-miss negative once spent 199s inside a researcher subagent with WebSearch.
