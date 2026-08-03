@@ -18,7 +18,14 @@
 
 **The `--v` separator is load-bearing.** Tags are not merely for humans: when a plugin declares a dependency with a semver range, Claude Code lists this repository's tags starting with `<plugin-name>--v` and fetches the highest version satisfying the range. A single-hyphen tag is invisible to that lookup and the dependent plugin is disabled with `no-matching-tag`. The prefix match is on the full plugin name, so hyphenated names are handled correctly.
 
-Recommended (not yet enforced): protect `main` with a GitHub ruleset requiring code-owner review, and protect `*--v*` tags so only release owners can create them. Note for a solo maintainer: with "Require review from Code Owners" enabled, your own PRs need an admin bypass, since an author's approval does not count.
+### Enforcement
+
+Two repository rulesets back the procedure above. Both are `active` and both grant the `admin` repository role an `always` bypass — the solo-maintainer escape hatch.
+
+- **`Protect main — owner only`** on `refs/heads/main`: blocks deletion and force-push, restricts direct updates to bypass actors, and requires a pull request with one approving review **from a code owner** ([CODEOWNERS](../CODEOWNERS)). Because an author's own approval never counts, your own PRs merge through the admin bypass.
+- **`Protect release tags`** on `refs/tags/*--v*`: blocks deletion, force-push, and updates. Tags become immutable once published, which is what dependency resolution relies on — a rewritten `<plugin>--vX.Y.Z` would silently change what every dependent install resolves to.
+
+Tag **creation is deliberately not restricted**: `tag-releases.yml` creates release tags with the workflow's `github.token`, and a creation rule would break automated tagging. The protection targets rewriting and deleting published tags, which is the actual risk.
 
 ## How users receive updates
 
