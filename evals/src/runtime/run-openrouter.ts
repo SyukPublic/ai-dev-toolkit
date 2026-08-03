@@ -30,6 +30,7 @@ export async function runOpenRouter(prompt: string, opts: RunOptions = {}): Prom
 
   const client = new OpenAI({ apiKey: key, baseURL: BASE_URL, timeout: 90_000, maxRetries: 2 });
 
+  const model = opts.model ?? EVAL_MODEL;
   const started = Date.now();
   let text = "";
   let inputTokens = 0;
@@ -46,7 +47,7 @@ export async function runOpenRouter(prompt: string, opts: RunOptions = {}): Prom
   try {
     for (let attempt = 1; attempt <= MAX_EMPTY_RETRIES; attempt++) {
       const res = await client.chat.completions.create({
-        model: opts.model ?? EVAL_MODEL,
+        model,
         temperature: 0,
         messages: [
           { role: "system", content: system },
@@ -81,6 +82,7 @@ export async function runOpenRouter(prompt: string, opts: RunOptions = {}): Prom
     filesRead: [],
     numTurns: 1,
     isError,
+    model,
     metrics: { durationMs: Date.now() - started, inputTokens, outputTokens, toolCallCount: 0 },
   };
 }

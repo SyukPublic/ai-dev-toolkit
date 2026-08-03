@@ -6,6 +6,7 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { MUTATING_TOOLS } from "../config.js";
 import { skillDir, agentFile } from "./paths.js";
 
 function stripFrontmatter(md: string): string {
@@ -47,8 +48,10 @@ export function agentContent(agentName: string): string {
 
 // Tools the eval refuses to hand a subagent: evals run with bypassPermissions, so a mutating
 // tool could take real actions. An agent that declares these still runs — it just runs
-// read-only, which is all an eval ever needs.
-const MUTATING_TOOLS = new Set(["Write", "Edit", "NotebookEdit", "Bash"]);
+// read-only, which is all an eval ever needs. Filtering the declared list is only half the
+// guard; agentTask also passes the same list as `disallowedTools`, because bypassPermissions
+// ignores an allow-list.
+const MUTATING = new Set(MUTATING_TOOLS);
 const READONLY_FALLBACK = ["Read", "Grep", "Glob"];
 
 /**
@@ -70,5 +73,5 @@ export function agentTools(agentName: string): string[] {
   return raw
     .split(",")
     .map((t) => t.trim())
-    .filter((t) => t.length > 0 && !MUTATING_TOOLS.has(t));
+    .filter((t) => t.length > 0 && !MUTATING.has(t));
 }

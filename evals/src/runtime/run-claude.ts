@@ -27,6 +27,13 @@ export interface Result {
   isError: boolean;
   /** SDK result subtype when not success (e.g. "error_max_turns"); "error" for thrown SDK failures. */
   errorSubtype?: string;
+  /**
+   * The model this run ACTUALLY used — the resolved `opts.model ?? EVAL_MODEL`, not the config
+   * default. `results/records.jsonl` is append-only and accumulates runs across models (an
+   * `EVAL_MODEL=... pnpm eval:repeat` probe lands in the same file as the default series), so
+   * without this a row cannot be attributed after the fact and mixed series silently pool.
+   */
+  model: string;
   metrics: Metrics;
 }
 
@@ -63,8 +70,9 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
     systemPrompt = (systemPrompt ?? "") + directive;
   }
 
+  const model = opts.model ?? EVAL_MODEL;
   const options: Options = {
-    model: opts.model ?? EVAL_MODEL,
+    model,
     maxTurns: opts.maxTurns ?? MAX_TURNS,
     permissionMode: "bypassPermissions", // safe: evals only read/plan and tools are allow-listed
     systemPrompt,
@@ -173,6 +181,7 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
     numTurns,
     isError,
     errorSubtype,
+    model,
     metrics: { durationMs, inputTokens, outputTokens, toolCallCount },
   };
 }

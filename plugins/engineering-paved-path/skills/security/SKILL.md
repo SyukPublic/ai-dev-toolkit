@@ -1,6 +1,6 @@
 ---
 name: security
-description: "Web application security best practices based on OWASP Top 10:2025. Use when reviewing code for vulnerabilities, implementing auth/authorization, handling user input, working with file uploads, managing secrets, or building API endpoints. Covers React, Express, MongoDB, and JWT security."
+description: "Application-CODE security review based on OWASP Top 10:2025, for a React + Express + MongoDB/Mongoose + JWT stack. Use when reviewing source code for vulnerabilities, implementing or auditing auth/authorization, handling untrusted input, working with file uploads, managing secrets in code, or hardening an API endpoint. Covers A01-A10 for that stack, including supply-chain risk in npm dependencies. Trigger terms: security review, is this code safe, vulnerability, OWASP, injection, XSS, IDOR, broken access control, auth bypass, mass assignment, rate limiting, JWT verification. NOT for infrastructure or network security — VPC and security-group design, firewall rules, which ports to open, public IPs, TLS termination, OS or container hardening, and cloud IAM policy are all out of scope: this skill reads application source code and has nothing to say about them."
 ---
 
 # Security Best Practices — OWASP Top 10:2025

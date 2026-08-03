@@ -36,35 +36,35 @@ start()
 
 ## Recommended Reading Order for Common Scenarios
 
-- **New to Fastify?** Start with `plugins.md` → `routes.md` → `schemas.md`
-- **Adding authentication:** `plugins.md` → `hooks.md` → `authentication.md`
-- **Improving performance:** `schemas.md` → `serialization.md` → `performance.md`
-- **Setting up testing:** `routes.md` → `testing.md`
-- **Going to production:** `logging.md` → `configuration.md` → `deployment.md`
+- **New to Fastify?** Start with `references/plugins.md` → `references/routes.md` → `references/schemas.md`
+- **Adding authentication:** `references/plugins.md` → `references/hooks.md` → `references/authentication.md`
+- **Improving performance:** `references/schemas.md` → `references/serialization.md` → `references/performance.md`
+- **Setting up testing:** `references/routes.md` → `references/testing.md`
+- **Going to production:** `references/logging.md` → `references/configuration.md` → `references/deployment.md`
 
 ## How to use
 
 Read individual rule files for detailed explanations and code examples:
 
-- [rules/plugins.md](rules/plugins.md) - Plugin development and encapsulation
-- [rules/routes.md](rules/routes.md) - Route organization and handlers
-- [rules/schemas.md](rules/schemas.md) - JSON Schema validation
-- [rules/error-handling.md](rules/error-handling.md) - Error handling patterns
-- [rules/hooks.md](rules/hooks.md) - Hooks and request lifecycle
-- [rules/authentication.md](rules/authentication.md) - Authentication and authorization
-- [rules/testing.md](rules/testing.md) - Testing with inject()
-- [rules/performance.md](rules/performance.md) - Performance optimization
-- [rules/logging.md](rules/logging.md) - Logging with Pino
-- [rules/typescript.md](rules/typescript.md) - TypeScript integration
-- [rules/decorators.md](rules/decorators.md) - Decorators and extensions
-- [rules/content-type.md](rules/content-type.md) - Content type parsing
-- [rules/serialization.md](rules/serialization.md) - Response serialization
-- [rules/cors-security.md](rules/cors-security.md) - CORS and security headers
-- [rules/websockets.md](rules/websockets.md) - WebSocket support
-- [rules/database.md](rules/database.md) - Database integration patterns
-- [rules/configuration.md](rules/configuration.md) - Application configuration
-- [rules/deployment.md](rules/deployment.md) - Production deployment
-- [rules/http-proxy.md](rules/http-proxy.md) - HTTP proxying and reply.from()
+- [references/plugins.md](${CLAUDE_SKILL_DIR}/references/plugins.md) - Plugin development and encapsulation
+- [references/routes.md](${CLAUDE_SKILL_DIR}/references/routes.md) - Route organization and handlers
+- [references/schemas.md](${CLAUDE_SKILL_DIR}/references/schemas.md) - JSON Schema validation
+- [references/error-handling.md](${CLAUDE_SKILL_DIR}/references/error-handling.md) - Error handling patterns
+- [references/hooks.md](${CLAUDE_SKILL_DIR}/references/hooks.md) - Hooks and request lifecycle
+- [references/authentication.md](${CLAUDE_SKILL_DIR}/references/authentication.md) - Authentication and authorization
+- [references/testing.md](${CLAUDE_SKILL_DIR}/references/testing.md) - Testing with inject()
+- [references/performance.md](${CLAUDE_SKILL_DIR}/references/performance.md) - Performance optimization
+- [references/logging.md](${CLAUDE_SKILL_DIR}/references/logging.md) - Logging with Pino
+- [references/typescript.md](${CLAUDE_SKILL_DIR}/references/typescript.md) - TypeScript integration
+- [references/decorators.md](${CLAUDE_SKILL_DIR}/references/decorators.md) - Decorators and extensions
+- [references/content-type.md](${CLAUDE_SKILL_DIR}/references/content-type.md) - Content type parsing
+- [references/serialization.md](${CLAUDE_SKILL_DIR}/references/serialization.md) - Response serialization
+- [references/cors-security.md](${CLAUDE_SKILL_DIR}/references/cors-security.md) - CORS and security headers
+- [references/websockets.md](${CLAUDE_SKILL_DIR}/references/websockets.md) - WebSocket support
+- [references/database.md](${CLAUDE_SKILL_DIR}/references/database.md) - Database integration patterns
+- [references/configuration.md](${CLAUDE_SKILL_DIR}/references/configuration.md) - Application configuration
+- [references/deployment.md](${CLAUDE_SKILL_DIR}/references/deployment.md) - Production deployment
+- [references/http-proxy.md](${CLAUDE_SKILL_DIR}/references/http-proxy.md) - HTTP proxying and reply.from()
 
 ## Core Principles
 

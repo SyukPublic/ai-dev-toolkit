@@ -12,7 +12,7 @@
  * become loadable project assets without a plugin-install step.
  */
 
-import { IS_BASELINE, WORKFLOW_ALLOWED_TOOLS, WORKFLOW_DISALLOWED_TOOLS } from "./config.js";
+import { IS_BASELINE, MUTATING_TOOLS, WORKFLOW_ALLOWED_TOOLS, WORKFLOW_DISALLOWED_TOOLS } from "./config.js";
 import { runClaude, type RunOptions } from "./runtime/run-claude.js";
 import { runContent } from "./runtime/dispatch.js";
 import { skillContent, agentContent, agentTools } from "./artifacts/load.js";
@@ -42,7 +42,18 @@ export function skillTask(prompt: string, skillName: string, opts: RunOptions = 
 export function agentTask(prompt: string, agentName: string, opts: RunOptions = {}) {
   const systemPrompt = IS_BASELINE ? undefined : agentContent(agentName);
   const allowedTools = agentTools(agentName);
-  return runClaude(prompt, { allowedTools, cwd: evalWorkspace(), ...opts, systemPrompt });
+  // Stripping mutating tools from the DECLARED list is not a guard on its own: bypassPermissions
+  // ignores allowedTools (same reason workflowTask carries a blocklist). `implementer` declares
+  // Write/Edit/Bash and its entire purpose is to use them, so without this an implementer eval
+  // would run a real shell and write real files. Not overridable via opts — placed after the
+  // spread deliberately.
+  return runClaude(prompt, {
+    allowedTools,
+    cwd: evalWorkspace(),
+    ...opts,
+    systemPrompt,
+    disallowedTools: MUTATING_TOOLS,
+  });
 }
 
 /**

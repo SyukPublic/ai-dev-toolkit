@@ -7,6 +7,18 @@ description: "General-purpose React Testing Library guide with Vitest. Use when 
 
 General-purpose guide for testing React components and hooks with React Testing Library (RTL) and Vitest. Project-agnostic — works with any Vite + React setup.
 
+## Supporting references
+
+Load these with the Read tool only when the task calls for them:
+
+| File | Read it when |
+|------|--------------|
+| `${CLAUDE_SKILL_DIR}/references/setup.md` | The project has no RTL/Vitest setup yet — install, config, setup file, scripts |
+| `${CLAUDE_SKILL_DIR}/references/spec-templates.md` | You want a full worked test file — list-component and form specs end to end |
+| `${CLAUDE_SKILL_DIR}/references/patterns.md` | Render helpers, `within` scoping, `renderHook`, React Router wrapping |
+| `${CLAUDE_SKILL_DIR}/references/mocking.md` | Setting up MSW, `vi.mock`, context providers, or fake timers |
+| `${CLAUDE_SKILL_DIR}/references/matchers.md` | Looking up a jest-dom matcher |
+
 ## Philosophy: Fewer Tests, Real Scenarios
 
 > "Write tests. Not too many. Mostly integration." — Kent C. Dodds
@@ -24,65 +36,6 @@ General-purpose guide for testing React components and hooks with React Testing 
   Integration  ← MOST tests: components with real providers, MSW for APIs
   Unit         ← Some: complex pure logic, utilities, formatters
 Static Analysis ← Always: TypeScript, ESLint
-```
-
----
-
-## Setup from Scratch
-
-### 1. Install Dependencies
-
-```bash
-npm install -D vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom
-```
-
-Optional but recommended:
-```bash
-npm install -D msw                     # Network-level API mocking
-npm install -D @vitest/coverage-v8     # Code coverage
-```
-
-### 2. Vitest Config
-
-Create `vitest.config.js` at the client root (or extend `vite.config.js`):
-
-```js
-import { defineConfig, mergeConfig } from 'vitest/config';
-import viteConfig from './vite.config.js';
-
-export default mergeConfig(viteConfig, defineConfig({
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.js'],
-    css: true,
-    include: ['src/**/*.test.{js,jsx,ts,tsx}'],
-  },
-}));
-```
-
-### 3. Setup File
-
-Create `src/test/setup.js`:
-
-```js
-import '@testing-library/jest-dom/vitest';
-```
-
-This registers matchers like `toBeInTheDocument()`, `toBeVisible()`, `toHaveTextContent()`.
-
-### 4. Package Scripts
-
-Add to `package.json`:
-
-```json
-{
-  "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
-  }
-}
 ```
 
 ---
@@ -128,132 +81,7 @@ Before writing tests, identify the component type and pick scenarios from this m
 | 1 | **Renders with props and handles user interaction** | Props → UI mapping, click/hover callbacks |
 | 2 | **Conditional rendering: different props → different output** | Only if the component has meaningful branching |
 
----
-
-## Complete Spec Template
-
-This is what a well-structured test file looks like. Each test walks through a real user flow.
-
-```jsx
-// BlogList.test.jsx
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
-import { http, HttpResponse } from 'msw';
-import { setupServer } from 'msw/node';
-import BlogList from './BlogList';
-
-// --- MSW setup: mock the API at the network level ---
-const blogs = [
-  { _id: '1', title: 'First Post', category: 'Technology', excerpt: 'About tech' },
-  { _id: '2', title: 'Second Post', category: 'Startup', excerpt: 'About startups' },
-];
-
-const server = setupServer(
-  http.get('/api/blogs', () => HttpResponse.json({ success: true, blogs })),
-);
-
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-
-// --- Render helper (keeps tests DRY) ---
-const renderBlogList = () =>
-  render(<MemoryRouter><BlogList /></MemoryRouter>);
-
-// --- Tests: 3 tests covering ALL real scenarios ---
-describe('BlogList', () => {
-  it('loads blogs and lets user navigate to a post', async () => {
-    const user = userEvent.setup();
-    renderBlogList();
-
-    // Loading state appears first
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
-
-    // Blogs appear after fetch
-    expect(await screen.findByText('First Post')).toBeInTheDocument();
-    expect(screen.getByText('Second Post')).toBeInTheDocument();
-
-    // User clicks a blog card
-    await user.click(screen.getByRole('link', { name: /first post/i }));
-    // Assert navigation happened (or verify detail view renders)
-  });
-
-  it('shows empty state when no blogs exist', async () => {
-    server.use(
-      http.get('/api/blogs', () => HttpResponse.json({ success: true, blogs: [] })),
-    );
-    renderBlogList();
-
-    expect(await screen.findByText(/no blogs/i)).toBeInTheDocument();
-    expect(screen.queryByRole('article')).not.toBeInTheDocument();
-  });
-
-  it('shows error message when API fails', async () => {
-    server.use(
-      http.get('/api/blogs', () => HttpResponse.json(
-        { success: false, message: 'Server error' },
-        { status: 500 },
-      )),
-    );
-    renderBlogList();
-
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
-    expect(screen.queryByRole('article')).not.toBeInTheDocument();
-  });
-});
-```
-
-### Form Spec Template
-
-```jsx
-// LoginForm.test.jsx
-describe('LoginForm', () => {
-  it('logs in with valid credentials and shows dashboard', async () => {
-    const user = userEvent.setup();
-    render(<MemoryRouter><LoginForm /></MemoryRouter>);
-
-    // Fill form
-    await user.type(screen.getByLabelText(/email/i), 'admin@test.com');
-    await user.type(screen.getByLabelText(/password/i), 'password123');
-    await user.click(screen.getByRole('button', { name: /sign in/i }));
-
-    // Success: redirected or success message
-    expect(await screen.findByText(/welcome/i)).toBeInTheDocument();
-  });
-
-  it('shows validation errors when submitted empty', async () => {
-    const user = userEvent.setup();
-    render(<MemoryRouter><LoginForm /></MemoryRouter>);
-
-    await user.click(screen.getByRole('button', { name: /sign in/i }));
-
-    // Both fields show errors
-    expect(await screen.findByText(/email is required/i)).toBeInTheDocument();
-    expect(screen.getByText(/password is required/i)).toBeInTheDocument();
-
-    // Form is still visible (not redirected)
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
-  });
-
-  it('shows server error when API returns 401', async () => {
-    server.use(
-      http.post('/api/admin/login', () =>
-        HttpResponse.json({ success: false, message: 'Invalid credentials' }, { status: 401 }),
-      ),
-    );
-    const user = userEvent.setup();
-    render(<MemoryRouter><LoginForm /></MemoryRouter>);
-
-    await user.type(screen.getByLabelText(/email/i), 'admin@test.com');
-    await user.type(screen.getByLabelText(/password/i), 'wrongpassword');
-    await user.click(screen.getByRole('button', { name: /sign in/i }));
-
-    expect(await screen.findByText(/invalid credentials/i)).toBeInTheDocument();
-  });
-});
-```
+For a full worked example of these scenarios in one file, read `${CLAUDE_SKILL_DIR}/references/spec-templates.md`.
 
 ---
 
@@ -388,145 +216,11 @@ await waitForElementToBeRemoved(() => screen.queryByText('Loading...'));
 
 ---
 
-## Component Testing Patterns
+## Mocking: pick the boundary
 
-### Basic render + interaction
+Mock the network, never the subject. MSW is the default for any data-fetching component because it intercepts at the network layer and keeps tests decoupled from the HTTP client; `vi.mock` at the API/hook level is the fallback when MSW is overkill. Never mock your own components, hooks, or context internals — render with the real provider.
 
-```
-1. Arrange — render the component with props/providers
-2. Act — simulate user interaction via userEvent
-3. Assert — check what the user would see
-```
-
-Combine all three into a single test when they form one user flow. Don't split Arrange/Act/Assert into separate `it()` blocks.
-
-### Render helper
-
-Create a local `renderComponent` function when the component needs providers:
-
-```js
-const renderComponent = (props = {}) =>
-  render(
-    <MemoryRouter>
-      <MyComponent defaultProp="value" {...props} />
-    </MemoryRouter>
-  );
-```
-
-### Asserting absence
-
-```js
-// queryBy returns null — safe with .not
-expect(screen.queryByText('Error')).not.toBeInTheDocument();
-```
-
-### Scoping queries with `within`
-
-```js
-const card = screen.getByRole('article');
-expect(within(card).getByText('Title')).toBeInTheDocument();
-```
-
----
-
-## Hook Testing
-
-Use `renderHook` for hooks with **complex pure logic** only. If a hook just fetches data or manages simple state, test it through the component that uses it instead.
-
-```js
-import { renderHook, act } from '@testing-library/react';
-
-const { result } = renderHook(() => useCounter());
-act(() => result.current.increment());
-expect(result.current.count).toBe(1);
-```
-
-For hooks needing providers, pass a `wrapper`:
-
-```js
-renderHook(() => useAuth(), {
-  wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
-});
-```
-
----
-
-## React Router Wrapping
-
-Components using `<Link>`, `useNavigate`, `useParams`, or `useLocation` must be wrapped:
-
-```js
-// Simple
-render(<MemoryRouter><MyComponent /></MemoryRouter>);
-
-// With route params
-render(
-  <MemoryRouter initialEntries={['/blogs/123']}>
-    <Routes>
-      <Route path="/blogs/:id" element={<BlogDetail />} />
-    </Routes>
-  </MemoryRouter>
-);
-```
-
----
-
-## Mocking Strategies
-
-### MSW (Mock Service Worker) — preferred for all data-fetching components
-
-Intercepts at the network layer. Tests don't couple to HTTP client internals. Most realistic approach.
-
-```js
-import { setupServer } from 'msw/node';
-import { http, HttpResponse } from 'msw';
-
-const server = setupServer(
-  // Default happy-path handlers
-  http.get('/api/blogs', () => HttpResponse.json({ success: true, blogs: [...] })),
-  http.post('/api/blogs', async ({ request }) => {
-    const body = await request.json();
-    return HttpResponse.json({ success: true, blog: { _id: '1', ...body } }, { status: 201 });
-  }),
-);
-
-beforeAll(() => server.listen());
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-
-// Override for specific tests:
-it('handles error', async () => {
-  server.use(
-    http.get('/api/blogs', () => HttpResponse.json({ success: false }, { status: 500 })),
-  );
-  // ...
-});
-```
-
-### Module mock (`vi.mock`) — fallback when MSW is overkill
-
-```js
-vi.mock('../../api/blogApi', () => ({
-  getBlogs: vi.fn(),
-}));
-```
-
-- Mock at the API/hook level, not at Axios/fetch level
-- Reset in `beforeEach`: `vi.clearAllMocks()`
-- Use `vi.mocked(fn)` for type-safe access to mock methods
-
-### Context mocking
-
-Wrap component in a test provider with controlled values. Don't mock context internals — render with the real provider.
-
-### Timers
-
-```js
-vi.useFakeTimers();
-// ... render and trigger timer-dependent code
-vi.advanceTimersByTime(3000);
-vi.useRealTimers(); // restore in afterEach
-```
+Full setup for MSW, `vi.mock`, context providers, and fake timers: `${CLAUDE_SKILL_DIR}/references/mocking.md`.
 
 ---
 
@@ -548,25 +242,6 @@ vi.useRealTimers(); // restore in afterEach
 - Snapshot tests (unless explicitly requested)
 - Constants or static data
 - Individual assertions that belong inside a longer flow test
-
----
-
-## jest-dom Matchers Reference
-
-| Matcher | Checks |
-|---------|--------|
-| `toBeInTheDocument()` | Element is in the DOM |
-| `toBeVisible()` | Element is visible to the user |
-| `toBeEnabled()` / `toBeDisabled()` | Enabled/disabled state |
-| `toHaveTextContent(/text/i)` | Contains text |
-| `toHaveValue('val')` | Input/select current value |
-| `toHaveAttribute('href', '/path')` | HTML attribute |
-| `toBeChecked()` | Checkbox/radio is checked |
-| `toHaveFocus()` | Element has focus |
-| `toBeRequired()` | Input is required |
-| `toHaveClass('cls')` | Has CSS class (use sparingly) |
-| `toHaveAccessibleDescription()` | `aria-describedby` text |
-| `toBeEmptyDOMElement()` | No visible content |
 
 ---
 
