@@ -1,0 +1,79 @@
+{
+  "session": "9e4e3df5-1c22-4f0a-9b31-7a4e2d10c8ab",
+  "journals": [
+    {
+      "agent": "orchestrator",
+      "type": "main",
+      "spawn_depth": 0,
+      "parent": null,
+      "usage": { "input": 31200, "output": 12400, "cache_read": 1840000, "cache_creation": 96000 },
+      "cache_hit_pct": 91,
+      "api_turns": 44,
+      "tool_calls_by_tool": { "Read": 9, "Agent": 4, "TodoWrite": 11 },
+      "tool_errors": 0,
+      "skills_loaded": ["sdd-engineering:run-plan"],
+      "writes_paths": [],
+      "duration_s": 1580,
+      "resumed_via_send_message": false
+    },
+    {
+      "agent": "agent-4b1f",
+      "type": "implementer",
+      "spawn_depth": 1,
+      "parent": "orchestrator",
+      "usage": { "input": 88400, "output": 41200, "cache_read": 2960000, "cache_creation": 210000 },
+      "cache_hit_pct": 87,
+      "api_turns": 61,
+      "tool_calls_by_tool": { "Read": 34, "Edit": 18, "Bash": 12, "Grep": 7 },
+      "tool_errors": 0,
+      "skills_loaded": ["engineering-paved-path:fastify-best-practices"],
+      "writes_paths": ["server/src/modules/orders/repository.ts", "server/src/modules/orders/service.ts"],
+      "duration_s": 8760,
+      "resumed_via_send_message": true
+    },
+    {
+      "agent": "agent-7c02",
+      "type": "implementer",
+      "spawn_depth": 1,
+      "parent": "orchestrator",
+      "usage": { "input": 76100, "output": 38900, "cache_read": 410000, "cache_creation": 388000 },
+      "cache_hit_pct": 41,
+      "api_turns": 58,
+      "tool_calls_by_tool": { "Read": 29, "Edit": 15, "Bash": 9 },
+      "tool_errors": 4,
+      "skills_loaded": ["engineering-paved-path:react-best-practices"],
+      "writes_paths": ["client/src/features/orders/OrderExport.tsx", "server/src/modules/orders/service.ts"],
+      "duration_s": 2140,
+      "resumed_via_send_message": false
+    },
+    {
+      "agent": "agent-9d55",
+      "type": "plan-verifier",
+      "spawn_depth": 1,
+      "parent": "orchestrator",
+      "usage": { "input": 54000, "output": 29800, "cache_read": 1210000, "cache_creation": 74000 },
+      "cache_hit_pct": 89,
+      "api_turns": 22,
+      "tool_calls_by_tool": { "Read": 41, "Grep": 19 },
+      "tool_errors": 0,
+      "skills_loaded": [],
+      "writes_paths": [],
+      "duration_s": 690,
+      "resumed_via_send_message": false
+    }
+  ],
+  "totals": {
+    "orchestrator_plus_agents": { "input": 249700, "output": 122300, "cache_read": 6420000, "cache_creation": 768000 }
+  },
+  "parallelism": {
+    "wall_clock_s": 9420,
+    "sum_agent_duration_s": 11590,
+    "parallel_factor": 1.23,
+    "max_concurrent": 2
+  },
+  "duplicate_reads": [
+    { "path": "docs/architecture.md", "read_by": ["agent-4b1f", "agent-7c02", "agent-9d55"] },
+    { "path": "docs/plans/2026-07-order-export.md", "read_by": ["agent-4b1f", "agent-7c02", "agent-9d55"] },
+    { "path": "server/src/platform/container.ts", "read_by": ["agent-4b1f", "agent-7c02"] }
+  ]
+}

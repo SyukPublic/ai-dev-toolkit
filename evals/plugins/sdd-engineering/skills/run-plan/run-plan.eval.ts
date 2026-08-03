@@ -1,7 +1,21 @@
 import { test, expect } from "vitest";
-import { describeWorkflow, runWorkflowCases, workflowTask, patternMatch, logTrace } from "../../../../src/index.js";
+import {
+  describeSkill,
+  describeWorkflow,
+  runSkillCases,
+  runWorkflowCases,
+  workflowTask,
+  patternMatch,
+  logTrace,
+} from "../../../../src/index.js";
 import { record } from "../../../../src/records/record.js";
 import { cases } from "./run-plan.cases.js";
+import { qualityCases } from "./run-plan.quality.cases.js";
+
+// The content tier measures the orchestration RULES the skill states — gate behaviour, Stage 5
+// triage routing, eager launch. It is deliberately independent of whether the skill ACTIVATES,
+// which the workflow tier below measures and which is currently unresolved (see .plans).
+describeSkill("run-plan", () => runSkillCases("run-plan", qualityCases));
 
 describeWorkflow("run-plan trigger", () => {
   runWorkflowCases(cases);
