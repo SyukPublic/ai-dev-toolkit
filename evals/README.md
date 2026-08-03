@@ -132,6 +132,15 @@ not exist in `workspace-template/` (a skill cannot engage on a missing file, and
 obeying the skill's own gate by refusing), or that workspace's `CLAUDE.md` may route the question
 elsewhere. `results/outputs/` holds the trace that settles it.
 
+Suspect the **model** third, and check it before editing any description. Activation splits sharply
+by subject at the default `EVAL_MODEL`: framework- and version-specific skills (React, Next.js,
+Fastify, React Testing Library) engage on `claude-haiku-4-5` in every recorded run, while broad
+foundational ones (`security`, `typescript-expert`, `onion-architecture`) sit at 11-32% — and a
+miss there is not a trigger failure but the model answering competently from its own knowledge
+(median 967 output tokens on a miss, 12 on an engagement). Re-running the same pair on
+`EVAL_MODEL=claude-sonnet-5` separates a weak description from a weak model in one probe: for
+`security` it moved 30%/10% to 100%/100% with no content change at all.
+
 Activation cases **hard-block subagent spawning**, and must keep doing so. A dispatched subagent
 preloads paved-path skills in its own frontmatter and its file reads land in the *parent* trace, so
 `skillEngaged` would report an activation the session never performed — measured: `architecture-

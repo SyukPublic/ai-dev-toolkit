@@ -65,12 +65,28 @@ export const activationCases: WorkflowCase[] = [
     //
     // Reverted byte-for-byte. Term overlap is NOT the mechanism.
     //
-    // What the traces show instead: no subagents anywhere (25/25 rows), tools: ['Skill'], skills:
-    // ['security'] — the session itself reaches for the skill on an infrastructure question. The
-    // next candidate is that topical match on the skill's own NAME dominates anything the
-    // description says, which no description edit can fix. Do not test that by narrowing the
-    // description further, and do not touch either side without measuring BOTH cases in the same
-    // run at n>=10.
+    // IT IS A MODEL CEILING — do NOT edit security/SKILL.md's description. Same description, same
+    // cases, one variable changed:
+    //
+    //     model under test        positive engages    negative stays out
+    //     claude-sonnet-5 (n=5)   5/5  100%           5/5  100%
+    //     claude-haiku-4-5 (n=10) 3/10  30%           1/10  10%
+    //
+    // Sonnet's traces are identical across all five runs: on the positive turns=2,
+    // tools: ['Skill'], skills: ['security'], 4-16 output tokens (early stop on engagement); on the
+    // negative turns=1, tools: [], ~1500-1850 output tokens — it answers the infrastructure question
+    // itself and never touches the skill. That is the description working exactly as written, in
+    // both directions, on a model able to follow it.
+    //
+    // So the 1.0.3 rewrite is right on the merits even though the numbers published for it are not
+    // reproducible. EVAL_MODEL defaults to claude-haiku-4-5, so this pair will keep reading red in
+    // the default series — that is the tripwire working, not a regression, exactly as with the NoSQL
+    // operator-injection miss in security.cases.ts.
+    //
+    // Also refuted by the same probe: that topical match on the skill's own NAME drives the false
+    // activation (sonnet never fires on the word "security" here), and that a capable model would
+    // displace the skill by answering inline (sonnet engages MORE on the positive, not less).
+    // Anything further here is a model-selection question, not a content one.
     name: "near-miss negative — VPC and firewall hardening must NOT engage the app-security review skill",
     prompt:
       "We are setting up the VPC and security groups for our managed Postgres instance. Which " +
