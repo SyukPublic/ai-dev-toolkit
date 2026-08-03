@@ -1,7 +1,7 @@
 {
   "name": "engineering-paved-path",
   "displayName": "Engineering Paved Path",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Curated engineering skills for React, Next.js, Fastify, onion architecture, testing, TypeScript, and security",
   "author": { "name": "Roman Halas" },
   "license": "MIT",

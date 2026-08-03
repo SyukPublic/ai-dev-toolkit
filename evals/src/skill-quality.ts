@@ -33,12 +33,30 @@ function stripCode(md: string): string {
     .replace(/`[^`\n]*`/g, "");
 }
 
-function* internalLinks(body: string): Generator<[string, string]> {
+/**
+ * Yields [original target, path to resolve, which base to resolve it against].
+ *
+ * `${CLAUDE_SKILL_DIR}` / `${CLAUDE_PLUGIN_ROOT}` are not decoration: CLAUDE.md REQUIRES every
+ * file reference inside a plugin to go through them, because plugins execute from
+ * ~/.claude/plugins/cache and a bare relative path breaks after install. Resolving such a target
+ * literally reports every correctly-written link as broken. That went unnoticed while the only
+ * uses were inside code spans (which stripCode removes) or bare relative links, so the first
+ * skill to follow the documented rule in a real markdown link failed the check.
+ */
+function* internalLinks(body: string): Generator<[string, string, "skill" | "plugin"]> {
   for (const m of stripCode(body).matchAll(LINK_RE)) {
     const target = m[2];
     if (/^(https?:|#|mailto:)/.test(target)) continue;
-    const path = target.split("#")[0];
-    if (path) yield [target, path];
+    let path = target.split("#")[0];
+    if (!path) continue;
+    let base: "skill" | "plugin" = "skill";
+    if (path.startsWith("${CLAUDE_PLUGIN_ROOT}/")) {
+      base = "plugin";
+      path = path.slice("${CLAUDE_PLUGIN_ROOT}/".length);
+    } else if (path.startsWith("${CLAUDE_SKILL_DIR}/")) {
+      path = path.slice("${CLAUDE_SKILL_DIR}/".length);
+    }
+    if (path) yield [target, path, base];
   }
 }
 
@@ -87,8 +105,11 @@ function evaluate(ref: SkillRef): Report {
   if (fm.name && fm.name !== name) errors.push(`frontmatter name '${fm.name}' != directory '${name}'`);
   if (body.length < 100) errors.push("SKILL.md body suspiciously short (< 100 chars)");
   if (body.split("\n").filter((l) => l.startsWith("#")).length < 2) errors.push("fewer than 2 headings — likely incomplete");
-  for (const [target, path] of internalLinks(body)) {
-    if (!existsSync(join(ref.dir, path))) errors.push(`broken reference (${target}) — not found: ${path}`);
+  // ref.dir is <plugin>/skills/<name>, so the plugin root is two levels up.
+  const pluginRoot = join(ref.dir, "..", "..");
+  for (const [target, path, base] of internalLinks(body)) {
+    const from = base === "plugin" ? pluginRoot : ref.dir;
+    if (!existsSync(join(from, path))) errors.push(`broken reference (${target}) — not found: ${path}`);
   }
 
   const evalFile = join(EVALS_DIR, "plugins", ref.plugin, "skills", name, `${name}.eval.ts`);

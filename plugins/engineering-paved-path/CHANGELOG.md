@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.2 - 2026-08-03
+
+- `fastify-best-practices`: moved the 19 rule files from `rules/` into `references/`.
+- `next-best-practices`: moved its 19 topic files from the skill root into `references/`.
+- Both: supporting-file links in `SKILL.md` now resolve through `${CLAUDE_SKILL_DIR}`
+  instead of bare relative paths, which is what the plugin cache requires after install.
+
+Guidance in both skills is unchanged — this is a file-layout change. `references/` is the
+convention the rest of the catalog already uses (`typescript-expert`, `run-plan`,
+`react-testing-library`), and it is the directory name the eval harness recognises as skill
+payload, so the two skills become measurable instead of only testable for activation.
+
 ## 1.0.1 - 2026-08-02
 
 - `react-testing-library`: split `SKILL.md` (603 lines) into a 278-line always-loaded
