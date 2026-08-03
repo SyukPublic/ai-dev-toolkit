@@ -10,7 +10,7 @@
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "vitest";
-import { EVAL_CONFIG } from "../config.js";
+import { EVAL_CONFIG, EVAL_JUDGE_MODEL } from "../config.js";
 import { RESULTS_DIR } from "../artifacts/paths.js";
 import { gitInfo } from "../git.js";
 import type { Result } from "../runtime/run-claude.js";
@@ -72,6 +72,12 @@ export function record(label: string, data: RecordData): void {
     git_sha: GIT_SHA,
     dirty: DIRTY,
     config: EVAL_CONFIG,
+    // Which models produced this row. `model` is the resolved per-run value, so an
+    // `EVAL_MODEL=... pnpm eval:repeat` probe stays distinguishable from the default series it
+    // gets appended next to; `judge_model` is the config default, which is exact while
+    // src/dsl/case.ts remains the only llmJudge caller (it passes no override).
+    model: result.model,
+    judge_model: EVAL_JUDGE_MODEL,
     nodeid,
     label,
     outcome,
