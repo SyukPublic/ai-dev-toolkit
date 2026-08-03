@@ -24,6 +24,11 @@ export const COST_REGRESSION_RATIO = 1.25; // candidate mean tokens > 125% of ba
 // --- Tool allow-lists -------------------------------------------------------
 // Subagent-spawning tool name varies by harness; count both.
 export const SPAWN_TOOLS = new Set(["Task", "Agent"]);
+// Tools no eval ever needs and bypassPermissions must not be allowed to hand over. Used BOTH to
+// filter an agent's declared frontmatter tools and as the agent tier's hard blocklist — an
+// allow-list alone is inert under bypass, and `implementer` declares Write/Edit/Bash and exists
+// to use them, so the allow-list is not a guard for it.
+export const MUTATING_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"];
 // workflowTask runs against the LIVE repo with bypassPermissions — keep this read-only.
 export const WORKFLOW_ALLOWED_TOOLS = ["Read", "Grep", "Glob", "Task", "Agent", "Skill"];
 // bypassPermissions IGNORES the allow-list above, so without a hard blocklist a workflow
