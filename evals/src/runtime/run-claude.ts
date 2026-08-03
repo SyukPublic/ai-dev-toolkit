@@ -164,8 +164,15 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
     // The SDK surfaces max-turns as a thrown error (not a result message) on this path — classify
     // it so callers can tell an EXPECTED turn-cap end (negative activation case) from a real crash.
     errorSubtype = /maximum number of turns/i.test(String(err)) ? "error_max_turns" : "error";
-    if (!resultText && textParts.length === 0) {
-      throw err; // nothing usable collected — surface the failure
+    // A turn-cap end is never a crash, even when the session produced no prose at all — for a
+    // trace-asserted case the TRACE is the measurement, and an activation negative is designed to
+    // run to the cap. Re-throwing here was the cause of the long-unexplained shrinking denominator:
+    // the throw escapes `await task(...)`, which sits OUTSIDE the try/finally that calls record(), so
+    // the case vanished from the ledger entirely and the series silently averaged over fewer runs
+    // than it printed. It also failed the case, which for a negative is the opposite of the truth.
+    // A genuine error with nothing collected still surfaces.
+    if (!resultText && textParts.length === 0 && errorSubtype !== "error_max_turns") {
+      throw err; // nothing usable collected and not a turn-cap end — surface the failure
     }
   }
 
