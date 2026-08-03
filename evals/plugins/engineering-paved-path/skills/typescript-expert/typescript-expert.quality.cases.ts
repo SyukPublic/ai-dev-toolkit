@@ -38,7 +38,11 @@ ${fx("domain-types.ts")}
     grounding: [["brand", "Brand", "nominal"]],
     practices: [
       "replaces the bare `type UserId = string` / `type OrderId = string` aliases with branded (nominal) types — an intersection with a unique marker property, e.g. `type Brand<K, T> = K & { __brand: T }` — so that passing a UserId where an OrderId is expected becomes a compile error",
-      "explains that the swapped-argument call in handleRefund compiles today precisely because both aliases erase to `string`, and would fail to compile once the ids are branded",
+      // REMOVED: "explains that the swapped-argument call in handleRefund compiles today precisely
+      // because both aliases erase to `string`". Measured at n=5 it passed 1/5 while the branding
+      // practice above passed 5/5 — it was scoring whether the model narrated the mechanism, not
+      // whether it knew it, and the prompt asks for tightened types rather than an explanation.
+      // A practice that duplicates another's capability and grades phrasing is noise.
       "replaces the `: Record<string, string | number>` annotation on appConfig with a `satisfies Record<string, string | number>` clause, and states that this keeps the literal/narrow property types (so `appConfig.timeout` is a number) while still enforcing the constraint",
       "types the routes with `as const` and derives the union with an indexed access such as `typeof routes[number]`, so that a typo'd path like '/hoem' is rejected at the call site",
       "notes that the `as number` cast in readTimeout stops being necessary once appConfig keeps its inferred literal types — the cast was compensating for the widening annotation",
@@ -74,6 +78,11 @@ ${fx("deep-types.ts")}
       // different subsets of a remedy menu is a defect in the practice, not in either model.
       "identifies the self-referential type `Nested<T> = T | Nested<T>[]` as one of the causes of the blow-up, and proposes a concrete restructuring of it — a depth-limited variant, a non-recursive reformulation, or any other change that stops the unbounded re-expansion",
       "recommends replacing the chained intersection in `WithMeta<T>` with an interface using `extends` (or otherwise flattening the intersection), because intersections are markedly more expensive for the checker than interface inheritance",
+      // KNOWN RED at n=5 on the default model: 0/5. Kept anyway. The skill lists "split large
+      // union types (>100 members)" among the common fixes for this exact error, so the practice
+      // is legitimate and the miss is the measurement, not a defect. claude-sonnet-5 got it 1/2 in
+      // a side probe, which leans model capability over content gap — but n=2 is too thin to
+      // conclude. Do NOT delete this to turn the case green; see .plans for the full series.
       "flags the 240-member `FieldName` union as a contributing cost and recommends splitting it or generating it differently, consistent with the guidance to break up very large unions",
       "rejects `skipLibCheck` as the fix and explains why: it only skips type checking of declaration files, so it cannot affect an error raised by this project's own source, and it risks masking real typing problems",
       "keeps the recommendations concrete — shows the rewritten type(s) rather than only naming the strategies",
