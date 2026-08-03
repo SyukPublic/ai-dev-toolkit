@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1 - 2026-08-02
+
+- `react-testing-library`: split `SKILL.md` (603 lines) into a 278-line always-loaded
+  core plus a `references/` directory read on demand — `setup.md`, `spec-templates.md`,
+  `patterns.md`, `mocking.md`, `matchers.md`. Guidance is unchanged; the always-on
+  context cost of loading the skill drops by roughly half.
+
 ## 1.0.0
 
 Initial release. Eight curated, project-agnostic engineering skills:
