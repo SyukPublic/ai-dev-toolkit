@@ -52,7 +52,8 @@ export function agentTask(prompt: string, agentName: string, opts: RunOptions = 
     cwd: evalWorkspace(),
     ...opts,
     systemPrompt,
-    disallowedTools: MUTATING_TOOLS,
+    // Union, not replacement: a caller may ADD restrictions but can never drop the mandatory ones.
+    disallowedTools: [...new Set([...MUTATING_TOOLS, ...(opts.disallowedTools ?? [])])],
   });
 }
 
@@ -64,13 +65,19 @@ export function agentTask(prompt: string, agentName: string, opts: RunOptions = 
  *
  * Safety: keep allowedTools a read-only allow-list (no Bash/Write/Edit) — a fresh session
  * with bypassPermissions could otherwise take real actions.
+ *
+ * `disallowedTools` is the UNION of the mandatory blocklist and whatever the caller adds, because
+ * an allow-list is inert under bypassPermissions: filtering a tool out of `allowedTools` does not
+ * stop the model from using it. An activation case relies on this to actually block subagent
+ * spawning — before the union it passed a filtered allow-list, the filter did nothing, and a
+ * dispatched subagent's own preloaded skills showed up in the PARENT trace as a false activation.
  */
 export function workflowTask(prompt: string, opts: RunOptions = {}) {
   return runClaude(prompt, {
     allowedTools: WORKFLOW_ALLOWED_TOOLS,
     cwd: evalWorkspace(),
     ...opts,
-    disallowedTools: WORKFLOW_DISALLOWED_TOOLS,
+    disallowedTools: [...new Set([...WORKFLOW_DISALLOWED_TOOLS, ...(opts.disallowedTools ?? [])])],
     settingSources: ["project"],
   });
 }

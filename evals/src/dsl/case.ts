@@ -154,7 +154,16 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
           // No Task/Agent here: activation is measured on the session itself (a Skill call or a
           // SKILL.md read), so a spawned subagent proves nothing and only burns wall-clock — a
           // near-miss negative once spent 199s inside a researcher subagent with WebSearch.
+          //
+          // It must be BLOCKED, not merely un-allowed. bypassPermissions ignores an allow-list, so
+          // the filter below was inert and subagents kept spawning: a dispatched agent preloads
+          // paved-path skills in its own frontmatter, its reads land in the PARENT trace, and
+          // skillEngaged then reported an activation the session never performed. Measured:
+          // onion-architecture flipped from a true 0/14 to "1/2 engaged" purely because
+          // architecture-reviewer preloads onion-architecture. A negative case can fail the same
+          // way, for a reason that has nothing to do with the description under test.
           allowedTools: WORKFLOW_ALLOWED_TOOLS.filter((t) => !SPAWN_TOOLS.has(t)),
+          disallowedTools: [...SPAWN_TOOLS],
           stopWhen: (p) => skillEngaged(p, skill),
         });
         // A negative case's stopWhen never fires (by design), so it legitimately runs to the

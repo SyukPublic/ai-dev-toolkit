@@ -29,10 +29,15 @@ export const SPAWN_TOOLS = new Set(["Task", "Agent"]);
 // allow-list alone is inert under bypass, and `implementer` declares Write/Edit/Bash and exists
 // to use them, so the allow-list is not a guard for it.
 export const MUTATING_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"];
-// workflowTask runs against the LIVE repo with bypassPermissions — keep this read-only.
+// workflowTask runs with bypassPermissions in the assembled temp workspace (tasks.ts passes
+// `cwd: evalWorkspace()`, NOT the repo) — keep this read-only anyway: the workspace is a real
+// checkout-shaped directory and the blocklist below is what actually stops a write, here or
+// anywhere else the cwd is later pointed.
 export const WORKFLOW_ALLOWED_TOOLS = ["Read", "Grep", "Glob", "Task", "Agent", "Skill"];
 // bypassPermissions IGNORES the allow-list above, so without a hard blocklist a workflow
-// session can Write/Edit/Bash the live repo. disallowedTools blocks tools even under bypass.
+// session can Write/Edit/Bash whatever it is pointed at. disallowedTools blocks tools even
+// under bypass, and it reaches spawned subagents too (a dispatched implementer reported being
+// denied Write/Edit/Bash inside its own nested session).
 export const WORKFLOW_DISALLOWED_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"];
 
 // --- Output verbosity -------------------------------------------------------

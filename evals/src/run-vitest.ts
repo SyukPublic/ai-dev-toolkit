@@ -6,6 +6,7 @@
  */
 
 import { execFileSync, spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DIM, RESET } from "./ansi.js";
@@ -13,14 +14,31 @@ import { DIM, RESET } from "./ansi.js";
 const EVALS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
+/**
+ * Vitest's own ESM entry, run with the CURRENT node binary and NO shell.
+ *
+ * This replaced `pnpm exec vitest` + `shell: true`, which was there because pnpm is a `.cmd` shim
+ * on Windows that spawn cannot resolve without a shell. The cure was worse than the disease:
+ * `shell: true` re-joins the args ARRAY into one command string with no quoting whatsoever, so
+ * every argument containing a space was re-split by the shell. `-t "engages on a backend
+ * layer-placement question"` reached vitest as `-t engages` plus five stray positional FILE
+ * patterns — which silently widened a one-case run into a whole-suite run (26 model sessions
+ * instead of 2) while the name filter `engages` matched every positive activation case. Resolving
+ * the entry through require() keeps it correct under pnpm's hoisting, and dropping the shell means
+ * arguments are passed through verbatim.
+ */
+const VITEST_ENTRY = (() => {
+  const require = createRequire(import.meta.url);
+  return join(dirname(require.resolve("vitest/package.json")), "vitest.mjs");
+})();
+
 /** How many test cases the pattern matches, via `vitest list` (no model calls). null on error. */
 export function countTests(vitestArgs: string[]): number | null {
   try {
-    const out = execFileSync("pnpm", ["exec", "vitest", "list", ...vitestArgs], {
+    const out = execFileSync(process.execPath, [VITEST_ENTRY, "list", ...vitestArgs], {
       cwd: EVALS_DIR,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
-      shell: true, // pnpm is a .cmd shim on Windows — spawn/execFile need a shell to resolve it (else ENOENT)
     });
     const n = out.split("\n").filter((l) => l.includes(" > ")).length;
     return n || null;
@@ -34,11 +52,10 @@ export function runVitestOnce(label: string, vitestArgs: string[], extraEnv: Rec
   return new Promise((resolve) => {
     const start = Date.now();
     let out = "";
-    const child = spawn("pnpm", ["exec", "vitest", "run", "--reporter=dot", ...vitestArgs], {
+    const child = spawn(process.execPath, [VITEST_ENTRY, "run", "--reporter=dot", ...vitestArgs], {
       cwd: EVALS_DIR,
       env: { ...process.env, EVAL_QUIET: "1", ...extraEnv },
       stdio: ["ignore", "pipe", "pipe"],
-      shell: true, // same fix as countTests — unblocks eval:repeat / eval:delta / eval:benchmark on Windows
     });
     child.stdout.on("data", (d) => (out += d));
     child.stderr.on("data", (d) => (out += d));
