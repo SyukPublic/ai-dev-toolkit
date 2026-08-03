@@ -31,7 +31,13 @@ ${REVIEW_TASK}
 ${file("server/src/middleware/admin-auth.js", "admin-auth.js")}`,
     practices: [
       "flags the fail-open auth middleware — jwt.verify() failure is caught but next() is still called unconditionally (no return in the catch), so a request with a missing or invalid token proceeds; the fix returns a 401 in the catch and calls next() only after a successful verify",
-      "flags the hardcoded JWT secret string literal 'blog-admin-secret' passed to jwt.sign, and the fix uses a 256-bit random secret read from process.env.JWT_SECRET",
+      // Measured at n=10: this sat at 7/10 while the four practices around it were 9-10/10, and the
+      // judge's own evidence for two of the three misses quoted the model's fix using
+      // process.env.JWT_SECRET. It was failing answers that found the defect and fixed it correctly,
+      // purely for not saying "256-bit random" — detection made conditional on one prescribed
+      // remedy, which the calibration playbook lists as two claims in one practice. The finding and
+      // the move out of source are what this practice is for; key-strength advice is not in scope.
+      "flags the hardcoded JWT secret string literal 'blog-admin-secret' passed to jwt.sign, and the fix stops hardcoding it — the secret is read from the environment (e.g. process.env.JWT_SECRET) instead",
       "flags jwt.sign missing an expiresIn and an explicitly pinned algorithm 'HS256' (so tokens never expire and the 'none'-algorithm class of attack is not prevented)",
       "flags the user-enumeration issue — returning a 404 'No account found for that email' for an unknown email but a 401 'Incorrect password' for a wrong password lets an attacker discover which emails exist; the fix returns one generic 'Invalid credentials' for both",
       "does NOT flag the String(req.body.email) / String(req.body.password) casts, the bcrypt.compare call, or user.toJSON() as vulnerabilities — recognizes them as correct defenses already in place",
