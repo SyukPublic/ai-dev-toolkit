@@ -135,6 +135,23 @@ async function main(): Promise<void> {
     const passed = fresh.filter((r) => r.outcome).length;
     const mark = passed === fresh.length ? `${GREEN}✓${RESET}` : `${RED}✗${RESET}`;
     console.log(`  run ${i}/${times}  ${mark} ${passed}/${fresh.length} cases`);
+    // A run that recorded FEWER rows than the pattern matches is the shape that quietly shrinks a
+    // denominator: the summary below then averages over 4 runs while printing "5 runs", and the
+    // rate reads slightly better than it was measured. record() fires in a finally, so a missing
+    // row means the case died before scoring (a throwing task(), or a vitest-level timeout) — the
+    // child's own output is the only place that says which. Dump it instead of losing it.
+    if (nCases !== null && fresh.length < nCases) {
+      const missing = nCases - fresh.length;
+      console.log(
+        `        ${RED}${missing} case(s) produced no record${RESET} ${DIM}— died before scoring;` +
+          ` child output follows${RESET}`,
+      );
+      if (captured) {
+        for (const l of captured.split("\n").filter((l) => /error|fail|timed? ?out|✗|unhandled/i.test(l)).slice(-8)) {
+          console.log(`        ${DIM}${l.trim()}${RESET}`);
+        }
+      }
+    }
   }
 
   const records = loadRecords(startLine);

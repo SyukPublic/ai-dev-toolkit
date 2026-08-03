@@ -47,7 +47,14 @@ export function countTests(vitestArgs: string[]): number | null {
   }
 }
 
-/** Run vitest once; resolves with the child's combined stdout+stderr (for crash diagnosis). */
+/**
+ * Run vitest once; resolves with the child's combined stdout+stderr (for crash diagnosis).
+ *
+ * NOTE: `--reporter=dot` REPLACES the reporters configured in vitest.config.ts rather than adding
+ * to them, so neither the trend ledger nor the activation summary is produced by a repeat run.
+ * That is why results/history.jsonl is sparse compared with records.jsonl and cannot be used to
+ * cross-check a repeat series — records.jsonl is the only ledger these runs write.
+ */
 export function runVitestOnce(label: string, vitestArgs: string[], extraEnv: Record<string, string> = {}): Promise<string> {
   return new Promise((resolve) => {
     const start = Date.now();
