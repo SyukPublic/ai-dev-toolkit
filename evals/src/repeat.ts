@@ -13,10 +13,18 @@
 import { mkdirSync, writeFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { GREEN, RED, DIM, RESET, rateColor } from "./ansi.js";
+import { ACTIVATION_FLOOR_FAIL_N, EVAL_MODEL, REPEAT_WARN_SESSIONS } from "./config.js";
 import { gitInfo } from "./git.js";
 import { countTests, runVitestOnce } from "./run-vitest.js";
 import { RESULTS_DIR } from "./artifacts/paths.js";
-import { aggregate, loadRecords, recordCount, type NodeAggregate, type Stats } from "./records/stats.js";
+import {
+  activationFloorBreaches,
+  aggregate,
+  loadRecords,
+  recordCount,
+  type NodeAggregate,
+  type Stats,
+} from "./records/stats.js";
 
 /**
  * vitest treats a path pattern as a SUBSTRING filter, so a bare directory arg like
@@ -102,8 +110,19 @@ async function main(): Promise<void> {
   const startLine = recordCount();
   let line = startLine;
   const nCases = countTests(vitestArgs);
-  console.log(`\nRepeat: ${vitestArgs.join(" ")}`);
+  console.log(`\nRepeat: ${vitestArgs.map((a) => (a.includes(" ") ? JSON.stringify(a) : a)).join(" ")}`);
   console.log(`  ${nCases ?? "?"} test case(s) × ${times} runs  (full traces in results/outputs/)\n`);
+  // Cost tripwire. Each case is a real model session, and a pattern that matches more than intended
+  // is invisible in the summary that follows — it just looks like a broader series. Quoting the
+  // args above makes a mangled -t value legible; this makes an unexpectedly wide match legible.
+  if (nCases !== null && nCases * times > REPEAT_WARN_SESSIONS) {
+    console.log(
+      `  ${RED}${nCases * times} model sessions${RESET} — more than ${REPEAT_WARN_SESSIONS}. ` +
+        `If that is more than you meant, check the pattern above:\n` +
+        `  ${DIM}a -t value is ONE argument (quote it), and every bare positional is a separate` +
+        ` file filter.${RESET}\n`,
+    );
+  }
   for (let i = 1; i <= times; i++) {
     const captured = await runVitestOnce(`run ${i}/${times}`, vitestArgs);
     const fresh = loadRecords(line);
@@ -135,6 +154,34 @@ async function main(): Promise<void> {
     writeFileSync(file, JSON.stringify({ label, git_sha: git.sha, dirty: git.dirty, times, vitestArgs, tests }, null, 2));
     console.log(`\n${GREEN}Saved as '${label}'${RESET} -> ${file}`);
     console.log(`Compare with: pnpm eval:delta <baseline-label> ${label}`);
+  }
+
+  // The activation floor. `indicative` deliberately stops one miss from failing a suite, but it
+  // cannot tell a 4-in-5 skill from one that has never engaged at all — so "never engaged, ever" is
+  // asserted HERE, where an exit code is ours to set.
+  //
+  // Judged on the case's whole recorded LIFETIME at this model, not on this series: a skill that
+  // engages 1 run in 17 (measured: onion-architecture) produces an all-zero series of 5 about 73%
+  // of the time, and failing on that would make the gate noise. Scoped to the cases this invocation
+  // actually ran, so it never fails on an unrelated old series.
+  const lifetime = loadRecords(0).filter((r) => (r.model ?? "unknown") === EVAL_MODEL);
+  const breaches = activationFloorBreaches(records, lifetime, ACTIVATION_FLOOR_FAIL_N);
+  if (breaches.length) {
+    console.log(`\n${RED}Activation floor: ${breaches.length} case(s) have NEVER engaged${RESET}`);
+    for (const b of breaches) {
+      console.log(
+        `  ${RED}0/${b.engaged.total}${RESET} lifetime (${EVAL_MODEL})  ${b.skill}  ` +
+          `${DIM}${b.nodeid.split(" > ").slice(-1)[0]}${RESET}`,
+      );
+    }
+    console.log(
+      `\n${DIM}Not once in ${ACTIVATION_FLOOR_FAIL_N}+ runs is not model variance. Before touching` +
+        ` the skill's description,\n  check the case itself: is every path in the prompt present in` +
+        ` the workspace, and does the\n  workspace CLAUDE.md route the question elsewhere? Read` +
+        ` results/outputs/ for the trace —\n  a skill cannot engage on a file that does not exist.` +
+        `${RESET}`,
+    );
+    process.exitCode = 1;
   }
 }
 

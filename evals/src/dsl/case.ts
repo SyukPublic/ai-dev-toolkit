@@ -187,7 +187,22 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
         } finally {
           // Explicit outcome: the assertion's truth, not !isError — a passing negative case ends
           // at the turn cap (isError=true), and an indicative positive miss can end cleanly.
-          record(c.name, { result, outcome: didActivate === c.shouldActivate });
+          //
+          // The `extra` fields are what make an activation case identifiable downstream. Without
+          // them a record's `outcome: false` is indistinguishable from any other failing case, so
+          // neither the run summary nor eval:repeat's floor can single out "this skill never
+          // engaged once in N tries" — the one activation result that is never noise.
+          record(c.name, {
+            result,
+            outcome: didActivate === c.shouldActivate,
+            extra: {
+              case_kind: "activation",
+              skill: c.skill,
+              should_activate: c.shouldActivate,
+              indicative: Boolean(c.indicative),
+              activated: didActivate,
+            },
+          });
         }
       } else if (c.kind === "trace") {
         // One session, many asserts — every provided expectation is checked against the same trace.

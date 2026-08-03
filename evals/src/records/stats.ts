@@ -42,9 +42,22 @@ export interface EvalRecord {
   git_sha: string;
   dirty: boolean;
   config: string;
+  /** Model under test, resolved per run. Absent on rows written before it was recorded. */
+  model?: string;
+  judge_model?: string;
   nodeid: string;
   label: string;
   outcome: boolean;
+  /**
+   * Activation metadata, written by the `kind: "activation"` branch of the case runner (absent on
+   * every other kind, and on rows predating it). `outcome` already folds shouldActivate in, so
+   * these exist to make the case *identifiable*, not to re-derive its pass/fail.
+   */
+  case_kind?: string;
+  skill?: string;
+  should_activate?: boolean;
+  indicative?: boolean;
+  activated?: boolean;
   score?: number;
   threshold?: number;
   practices: PracticeVerdict[];
@@ -134,6 +147,117 @@ export function aggregate(records: EvalRecord[]): Record<string, NodeAggregate> 
     };
   }
   return out;
+}
+
+export interface ActivationAggregate {
+  nodeid: string;
+  label: string;
+  skill: string;
+  shouldActivate: boolean;
+  indicative: boolean;
+  /** How often the skill actually engaged — the raw fact, independent of what the case wanted. */
+  engaged: Series;
+  /** Distinct models that produced these rows; >1 means the rate pools incomparable runs. */
+  models: string[];
+}
+
+/**
+ * Per-case activation stats over the rows that carry activation metadata. Keyed by nodeid, so a
+ * case renamed mid-series splits into two entries rather than silently pooling.
+ *
+ * `engaged` counts engagement, NOT case pass: for a negative case a HIGH engaged rate is the
+ * failure. Reporting the raw fact is deliberate — it is the number that distinguishes "engaged 4
+ * times in 5" from "never engaged once", which a pass rate alone hides for a negative case and an
+ * `indicative` flag hides for a positive one.
+ */
+export function activationSeries(records: EvalRecord[]): Record<string, ActivationAggregate> {
+  const byNode = new Map<string, EvalRecord[]>();
+  for (const r of records) {
+    if (r.case_kind !== "activation") continue;
+    const arr = byNode.get(r.nodeid) ?? [];
+    arr.push(r);
+    byNode.set(r.nodeid, arr);
+  }
+
+  const out: Record<string, ActivationAggregate> = {};
+  for (const [nodeid, rows] of byNode) {
+    const last = rows[rows.length - 1];
+    out[nodeid] = {
+      nodeid,
+      label: last.label,
+      skill: last.skill ?? "?",
+      shouldActivate: last.should_activate ?? true,
+      indicative: Boolean(last.indicative),
+      engaged: series(rows.filter((r) => r.activated).length, rows.length),
+      models: [...new Set(rows.map((r) => r.model ?? "unknown"))].sort(),
+    };
+  }
+  return out;
+}
+
+/**
+ * Engagement recovered from `outcome` for rows that predate the activation metadata. For an
+ * activation case `outcome === (activated === shouldActivate)`, so given the polarity the
+ * engagement is exact arithmetic, not an inference: activated = shouldActivate ? outcome : !outcome.
+ *
+ * Polarity is supplied per nodeid by the caller (from rows that DO carry metadata), which is what
+ * keeps this honest — a nodeid whose polarity is unknown is skipped rather than assumed positive.
+ * Without this, the historical rate would restart from zero on every existing records.jsonl and the
+ * summary would report "1/1" for a case that has engaged once in twelve tries.
+ */
+export function engagementByOutcome(
+  records: EvalRecord[],
+  polarity: Record<string, boolean>,
+): Record<string, Series> {
+  const engaged = new Map<string, number>();
+  const total = new Map<string, number>();
+  for (const r of records) {
+    const shouldActivate = polarity[r.nodeid];
+    if (shouldActivate === undefined) continue;
+    total.set(r.nodeid, (total.get(r.nodeid) ?? 0) + 1);
+    const didEngage = r.activated ?? (shouldActivate ? r.outcome : !r.outcome);
+    if (didEngage) engaged.set(r.nodeid, (engaged.get(r.nodeid) ?? 0) + 1);
+  }
+  const out: Record<string, Series> = {};
+  for (const [nodeid, n] of total) out[nodeid] = series(engaged.get(nodeid) ?? 0, n);
+  return out;
+}
+
+/**
+ * Indicative positive activation cases that have engaged ZERO times across their whole recorded
+ * LIFETIME — the floor. Returned rather than thrown so the caller owns the exit code (a reporter
+ * cannot set one; eval:repeat can).
+ *
+ * `scope` limits it to cases that ran in the current invocation (never fail on somebody's unrelated
+ * old series); `lifetime` is what the verdict is computed from, and should be pre-filtered to one
+ * model. Judging the lifetime rather than the current series is what makes the gate trustworthy in
+ * both directions:
+ *
+ *   - A low-but-real rate stops being a false alarm. `onion-architecture` engages about 1 run in 17
+ *     (its workspace CLAUDE.md routes most architectural questions away), so an all-zero series of 5
+ *     is the EXPECTED outcome ~73% of the time. Failing on that would make the gate noise; its
+ *     lifetime is non-zero, so it never breaches.
+ *   - "Never once, ever" keeps failing, which is the claim worth gating on: run-plan's invalid case
+ *     sat at a true 0/13 for the life of the repo because its prompt named a fixture that did not
+ *     exist.
+ *
+ * The returned aggregate reports the LIFETIME series, so the printed `0/N` is the whole evidence
+ * base and not just this run's slice.
+ */
+export function activationFloorBreaches(
+  scope: EvalRecord[],
+  lifetime: EvalRecord[],
+  minN: number,
+): ActivationAggregate[] {
+  const cases = activationSeries(scope);
+  const polarity: Record<string, boolean> = {};
+  for (const [id, a] of Object.entries(cases)) polarity[id] = a.shouldActivate;
+  const life = engagementByOutcome(lifetime, polarity);
+
+  return Object.values(cases)
+    .filter((a) => a.shouldActivate && a.indicative)
+    .map((a) => ({ ...a, engaged: life[a.nodeid] ?? a.engaged }))
+    .filter((a) => a.engaged.total >= minN && a.engaged.passed === 0);
 }
 
 /** Split a record list by its `config` tag. */

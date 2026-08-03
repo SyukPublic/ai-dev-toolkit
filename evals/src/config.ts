@@ -21,6 +21,26 @@ export const FLAKY_LOW = 0.2; // pass rate strictly inside (20%, 80%) is "flaky"
 export const FLAKY_HIGH = 0.8;
 export const COST_REGRESSION_RATIO = 1.25; // candidate mean tokens > 125% of baseline
 
+// --- Activation floor -------------------------------------------------------
+// An `indicative` positive activation case never fails a single run: a model legitimately does
+// the work inline instead of invoking the Skill tool, so one miss proves nothing. "Never once in
+// N tries" is a different claim, and it is NOT noise — it is the shape of a description that
+// cannot win, or of a case that cannot pass (a prompt naming a fixture that does not exist).
+// eval:repeat enforces the floor because it is the only place N exists; a single `vitest run`
+// has N=1 and can only report.
+// Two thresholds, because reporting a zero and ASSERTING one need different evidence. A skill that
+// engages 70% of the time (measured: `security` is 7/10) scores 0/2 about once in eleven series, so
+// failing at N=2 would cry wolf on a working skill — and a gate that cries wolf gets ignored, which
+// is how the invalid run-plan case survived in the first place. Reporting starts at 2; the exit
+// code waits for 5, the same n this repo already requires before believing any other rate.
+export const ACTIVATION_FLOOR_MIN_N = Number(process.env.EVAL_ACTIVATION_FLOOR_N ?? "2");
+export const ACTIVATION_FLOOR_FAIL_N = Number(process.env.EVAL_ACTIVATION_FAIL_N ?? "5");
+
+// --- Cost tripwire ----------------------------------------------------------
+// cases × runs above this and eval:repeat says so before spending it. Set from the real incident
+// that motivated it: a mangled -t value turned an intended 2-session run into 26.
+export const REPEAT_WARN_SESSIONS = Number(process.env.EVAL_REPEAT_WARN_SESSIONS ?? "12");
+
 // --- Tool allow-lists -------------------------------------------------------
 // Subagent-spawning tool name varies by harness; count both.
 export const SPAWN_TOOLS = new Set(["Task", "Agent"]);
