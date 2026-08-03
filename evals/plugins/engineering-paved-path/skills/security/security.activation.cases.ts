@@ -32,14 +32,20 @@ export const activationCases: WorkflowCase[] = [
     // Near-miss: the word "security" is right there, but this is network/infrastructure hardening
     // with no application code in scope — outside what this skill reviews.
     //
-    // KNOWN RED, 2/5 at n=5 — the skill FALSELY ACTIVATES here three times in five. Checked
-    // against the artifact before concluding: the description says "Web application security …
-    // Use when reviewing code for vulnerabilities … Covers React, Express, MongoDB, and JWT", so
-    // a VPC/security-group question is genuinely outside it and the case is fair. The likely
-    // cause is that the description never states what the skill is NOT for; run-plan's carries
-    // three explicit "unlike X" contrasts and its negative holds at 5/5. Left failing on purpose:
-    // over-triggering costs a user real context on every unrelated security question, and that is
-    // worth seeing rather than hiding.
+    // This case found and then verified a real defect. At first measurement the skill FALSELY
+    // ACTIVATED here three times in five (negative 2/5). The description was the cause: it said
+    // "Web application security best practices … Use when reviewing code for vulnerabilities" and
+    // never stated what the skill is NOT for, so any question containing "security" pulled the
+    // whole OWASP guide into context.
+    //
+    // Fixed in engineering-paved-path 1.0.3 by rewriting the description to say it reviews
+    // application SOURCE CODE, to list trigger terms, and to name the out-of-scope areas
+    // explicitly — the shape run-plan already uses, whose negative holds at 5/5. Re-measured at
+    // n=5: this negative went 40% → 80% AND the positive went 60% → 80%, so clarifying the scope
+    // helped the trigger in both directions rather than trading one failure for another.
+    //
+    // Residual: one false activation in five still happens. Do not chase it by narrowing the
+    // description further without measuring the positive in the same run.
     name: "near-miss negative — VPC and firewall hardening must NOT engage the app-security review skill",
     prompt:
       "We are setting up the VPC and security groups for our managed Postgres instance. Which " +

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.3 - 2026-08-03
+
+- `security`: rewrote the skill `description` so it stops engaging on infrastructure
+  questions. It now says the skill reviews application **source code**, lists trigger
+  terms, and names what is out of scope — VPC and security-group design, firewall
+  rules, open ports, public IPs, TLS termination, OS/container hardening, cloud IAM.
+  Supply-chain risk in npm dependencies stays explicitly in scope (OWASP A03), as does
+  application configuration such as Helmet and CORS (A02).
+
+  Measured at n=5 before and after: a near-miss question about VPC and security groups
+  stopped falsely engaging the skill (40% → 80% correct non-engagement), and engagement
+  on a genuine auth-code review improved as well (60% → 80%). The guidance itself is
+  unchanged — only the targeting.
+
 ## 1.0.2 - 2026-08-03
 
 - `fastify-best-practices`: moved the 19 rule files from `rules/` into `references/`.
