@@ -132,7 +132,22 @@ ${fx("spec-approved.md")}`,
       "breaks the work into phases, and states for each phase whether its tasks can run in parallel or must be sequential",
       "maps its tasks back to the spec's acceptance criteria, so each task states which criteria it satisfies",
       "assigns a test to the criteria it covers rather than leaving verification unstated",
-      "does not write production code — it describes the work to be done rather than emitting the implementation itself",
+      // Was "does not write production code — it describes the work to be done rather than emitting
+      // the implementation itself". It passed 100% only while the case was broken: until the preamble
+      // was fixed the agent refused to plan, so it never emitted anything to judge. The first series
+      // where the plan actually got written (planner-sonnet-fix-c) put it at 2/5, and both failure
+      // modes are behaviour this agent's contract REQUIRES in the multi-agent mode this case supplies:
+      //   * "export default async function ordersRoutes(app: FastifyInstance) { const service = new
+      //     OrdersService(app.container);" — the mandated VERBATIM lift of the workspace's own
+      //     server/src/modules/orders/routes.ts into the Shared scaffold. The agent body: "every
+      //     multi-agent plan MUST hand implementers READY FRAGMENTS ... lifts the reusable boilerplate
+      //     VERBATIM", and "embed the COMPLETE function body".
+      //   * "export interface CurrencyConversionProvider { convert(...) }" — a port signature, i.e.
+      //     the Design step of the working loop, not an implementation.
+      // The prohibition it was reaching for is file-level ("Do not edit, create, or delete any source,
+      // config, or test file") and cannot fire in a read-only session at all. So judge the DELIVERABLE:
+      // a plan whose code is cited context or a contract, versus the finished feature.
+      "delivers a plan, not the feature — any code it includes is cited existing context or an interface contract, not the working implementation",
     ],
     threshold: 0.7,
     maxTurns: 25,
