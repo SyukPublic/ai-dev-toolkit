@@ -9,7 +9,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, expect } from "vitest";
-import { DEFAULT_THRESHOLD, SPAWN_TOOLS, WORKFLOW_ALLOWED_TOOLS } from "../config.js";
+import { DEFAULT_THRESHOLD, EVAL_ACTIVATION_MODEL, SPAWN_TOOLS, WORKFLOW_ALLOWED_TOOLS } from "../config.js";
 import { skillTask, agentTask, workflowTask } from "../tasks.js";
 import { runClaude, type Result, type RunOptions } from "../runtime/run-claude.js";
 import { patternMatch, type ExpectedPattern } from "../scoring/pattern-match.js";
@@ -151,10 +151,24 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
         const skill = c.skill;
         const result = await workflowTask(c.prompt, {
           maxTurns: c.maxTurns,
+          // Activation is a judgement task the cheap default cannot perform for broad subjects, and
+          // this tier runs no judge, so a stronger model here costs no impartiality. See
+          // EVAL_ACTIVATION_MODEL. The resolved value lands on every record, so mixed-model ledgers
+          // stay separable.
+          model: EVAL_ACTIVATION_MODEL,
           // No Task/Agent here: activation is measured on the session itself (a Skill call or a
           // SKILL.md read), so a spawned subagent proves nothing and only burns wall-clock — a
           // near-miss negative once spent 199s inside a researcher subagent with WebSearch.
+          //
+          // It must be BLOCKED, not merely un-allowed. bypassPermissions ignores an allow-list, so
+          // the filter below was inert and subagents kept spawning: a dispatched agent preloads
+          // paved-path skills in its own frontmatter, its reads land in the PARENT trace, and
+          // skillEngaged then reported an activation the session never performed. Measured:
+          // onion-architecture flipped from a true 0/14 to "1/2 engaged" purely because
+          // architecture-reviewer preloads onion-architecture. A negative case can fail the same
+          // way, for a reason that has nothing to do with the description under test.
           allowedTools: WORKFLOW_ALLOWED_TOOLS.filter((t) => !SPAWN_TOOLS.has(t)),
+          disallowedTools: [...SPAWN_TOOLS],
           stopWhen: (p) => skillEngaged(p, skill),
         });
         // A negative case's stopWhen never fires (by design), so it legitimately runs to the
@@ -178,7 +192,22 @@ export function runWorkflowCases(cases: WorkflowCase[]): void {
         } finally {
           // Explicit outcome: the assertion's truth, not !isError — a passing negative case ends
           // at the turn cap (isError=true), and an indicative positive miss can end cleanly.
-          record(c.name, { result, outcome: didActivate === c.shouldActivate });
+          //
+          // The `extra` fields are what make an activation case identifiable downstream. Without
+          // them a record's `outcome: false` is indistinguishable from any other failing case, so
+          // neither the run summary nor eval:repeat's floor can single out "this skill never
+          // engaged once in N tries" — the one activation result that is never noise.
+          record(c.name, {
+            result,
+            outcome: didActivate === c.shouldActivate,
+            extra: {
+              case_kind: "activation",
+              skill: c.skill,
+              should_activate: c.shouldActivate,
+              indicative: Boolean(c.indicative),
+              activated: didActivate,
+            },
+          });
         }
       } else if (c.kind === "trace") {
         // One session, many asserts — every provided expectation is checked against the same trace.

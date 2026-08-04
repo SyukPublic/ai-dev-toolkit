@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import TrendReporter from "./src/trend-reporter.js";
+import ActivationReporter from "./src/activation-reporter.js";
 
 export default defineConfig({
   test: {
@@ -15,6 +16,8 @@ export default defineConfig({
     hookTimeout: 480_000,
     // One session per test; a few files can run concurrently. Keep it modest to stay cheap.
     fileParallelism: true,
-    reporters: ["default", new TrendReporter()],
+    // TrendReporter writes the history ledger; ActivationReporter prints the activation summary
+    // (read-only over records.jsonl). Neither calls a model, and neither can fail a run.
+    reporters: ["default", new TrendReporter(), new ActivationReporter()],
   },
 });

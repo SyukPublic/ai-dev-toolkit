@@ -19,7 +19,12 @@ export const activationCases: WorkflowCase[] = [
   {
     kind: "activation",
     name: "onion-architecture engages on a backend layer-placement question",
-    // UNMEASURABLE IN THIS WORKSPACE — 0/5, and not because of the skill. workspace-template's
+    // LOW-RATE IN THIS WORKSPACE — roughly 1 run in 17, and mostly not because of the skill.
+    // (An earlier note here read "UNMEASURABLE — 0/5". That was wrong twice over: the skill does
+    // engage, and one apparent engagement was a false positive — a dispatched architecture-reviewer
+    // preloads onion-architecture in its frontmatter and the subagent's SKILL.md read landed in the
+    // parent trace. Activation cases now hard-block subagent spawning, so the rate is honest.)
+    // workspace-template's
     // CLAUDE.md routing table says: 'Architecture, layering, dependency direction, "where should
     // this code live" → read docs/architecture.md', and further down, 'For any architectural
     // assessment of planned or existing code (layering, dependency direction, boundaries),
@@ -30,7 +35,11 @@ export const activationCases: WorkflowCase[] = [
     //
     // Left in place because it is `indicative` (logs, does not fail) and because the reading is
     // worth preserving: a project whose CLAUDE.md routes architecture questions to its own docs
-    // WILL bypass this skill, which is real information about how it behaves in the field.
+    // will MOSTLY bypass this skill, which is real information about how it behaves in the field.
+    //
+    // Expect an all-zero series here often — at this rate a run of 5 misses about 73% of the time.
+    // That is not a floor breach: eval:repeat judges the case's whole recorded lifetime, not one
+    // series, precisely so a low-but-real rate does not read as "never engages".
     //
     // The stack is deliberately the one the skill's description names — Fastify + Drizzle — and
     // the workspace's own. An earlier version said "Mongo query", which put the question outside

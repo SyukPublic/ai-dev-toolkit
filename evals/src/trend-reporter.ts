@@ -1,8 +1,16 @@
 /**
  * Local version-over-version trend. A tiny vitest reporter that appends each eval test's
- * pass/fail (with the current git sha) to results/history.jsonl. Both `eval:compare` and
- * `eval:repeat` read this file, so removing the reporter disables both — it is not optional
- * if you use those. Nothing here calls a model.
+ * pass/fail (with the current git sha) to results/history.jsonl. `eval:compare` reads this file
+ * and is its ONLY consumer — `eval:repeat` aggregates results/records.jsonl instead (via
+ * records/stats.ts), so removing this reporter disables compare alone. Nothing here calls a model.
+ *
+ * What it stores is the VITEST STATE, which is not always the measured outcome: an `indicative`
+ * positive activation miss is a vitest `pass` (deliberately non-blocking) while its record.ts row
+ * is `outcome: false`. The two layers therefore disagree by design for those cases, and
+ * `eval:compare` cannot see an activation flip. Read the activation summary or `eval:repeat` for
+ * that; this ledger's own value is that it also lists a case that FAILED BEFORE scoring — a
+ * session that threw inside task() writes no record at all, so a history row with no matching
+ * record is the signature of a case that never really ran.
  */
 
 import { execFileSync } from "node:child_process";

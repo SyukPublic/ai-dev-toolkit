@@ -92,7 +92,8 @@ is always safe.
 
 | Var | Default | Meaning |
 |---|---|---|
-| `EVAL_MODEL` | `claude-haiku-4-5` | model under test |
+| `EVAL_MODEL` | `claude-haiku-4-5` | model under test for the judged tiers |
+| `EVAL_ACTIVATION_MODEL` | `claude-sonnet-5` | model for activation cases only (see below); an explicit `EVAL_MODEL` overrides it |
 | `EVAL_JUDGE_MODEL` | `claude-sonnet-5` | judge (stronger family to soften self-preference) |
 | `EVAL_MAX_TURNS` | `8` | default turn cap per session |
 | `EVAL_CONFIG` | `candidate` | `baseline` = don't inject the artifact (benchmark) |
@@ -100,6 +101,74 @@ is always safe.
 | `OPENROUTER_API_KEY` | — | required when `EVAL_BACKEND=openrouter` |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api` | point at `http://localhost:4000` for the LiteLLM proxy |
 | `EVAL_QUIET` | — | suppress per-run trace/verdict output |
+| `EVAL_REPEAT_MAX` | `5` | ceiling `eval:repeat -n` is capped to |
+| `EVAL_ACTIVATION_FLOOR_N` | `2` | shortest series a zero is reported on |
+| `EVAL_ACTIVATION_FAIL_N` | `5` | shortest series a zero **fails** the run on |
+| `EVAL_REPEAT_WARN_SESSIONS` | `12` | warn before spending more model sessions than this |
+
+### Reading activation results
+
+A positive activation case is marked `indicative`: a model may legitimately do the work inline
+instead of invoking the `Skill` tool, so **one miss never fails the suite**. That makes the raw
+pass/fail useless on its own — "engaged 4 times in 5" and "never engaged once" both show up as a
+green suite. Two things close that gap:
+
+- Every run ends with an **activation summary**: per case, how often the skill engaged this run and
+  across every row recorded for the same `EVAL_MODEL`. Negatives are shown with their polarity
+  folded in, so *not* engaging reads as the pass. It reports; it never fails a run.
+- `eval:repeat` enforces the **activation floor**: an indicative positive that has **never** engaged
+  exits non-zero. The verdict is computed over the case's whole recorded **lifetime** at the current
+  `EVAL_MODEL` (at least `EVAL_ACTIVATION_FAIL_N` rows), not over the series you just ran.
+
+Judging the lifetime is what makes the gate worth trusting. A skill that engages 1 run in 17 —
+measured, `onion-architecture`, whose workspace `CLAUDE.md` routes most architectural questions
+away — produces an all-zero series of 5 about 73% of the time. Failing on that would make the gate
+noise, and a gate that cries wolf gets ignored, which is how an invalid case survived unnoticed for
+the life of the repo. "Not once, ever" is a different claim, and it is the one worth blocking on.
+The activation summary still flags a zero in the current run from `EVAL_ACTIVATION_FLOOR_N`, marking
+it as a miss rather than a verdict when the lifetime disagrees.
+
+When the floor trips, suspect the **case** before the skill. The prompt may name a path that does
+not exist in `workspace-template/` (a skill cannot engage on a missing file, and the model is often
+obeying the skill's own gate by refusing), or that workspace's `CLAUDE.md` may route the question
+elsewhere. `results/outputs/` holds the trace that settles it.
+
+### Why activation runs on a stronger model
+
+Activation asks whether a skill gets **selected**, which is a judgement task, and the cheap default
+cannot perform it for broad subjects. Measured across every activation row recorded at
+`claude-haiku-4-5`: framework- and version-specific skills engage in **every** run
+(`react-best-practices` 11/11, `react-testing-library` 9/9, `fastify` 4/4, `next` 4/4,
+`workflow-retro` 6/6), while broad foundational ones sit at **11-32%** (`security` 12/37,
+`typescript-expert` 3/13, `run-plan` 5/27, `onion-architecture` 2/18). A miss there is not a trigger
+failure: median **967** output tokens and no tool calls at all in 29 of 78 misses — the model writing
+a full competent answer instead of consulting anything. An engagement is a median of 12 tokens.
+
+On the `security` pair, one variable changed: haiku scored **4/20** correct outcomes, sonnet
+**10/10**, same description. Those reds measured the model.
+
+So `EVAL_ACTIVATION_MODEL` defaults to `claude-sonnet-5` for this tier only. Two reasons it is safe
+here and not for the rest: activation runs **no judge** (its cases have no `practices` — the verdict
+is the trace), so a stronger model cannot create the self-preference that `EVAL_JUDGE_MODEL` exists
+to avoid; and activation is the cheaper half — 26 short cases that early-stop on engagement, against
+51 judged quality cases with 4k+ token outputs. Raising `EVAL_MODEL` itself would put the model under
+test in the judge's own family for all 51.
+
+Two consequences worth knowing. The floor and the summary pool history **per model**, so switching
+this makes them start from n=0 on the new model — the gate stays quiet until a case has
+`EVAL_ACTIVATION_FAIL_N` rows on it. And a red in the judged tiers is still worth a
+`EVAL_MODEL=claude-sonnet-5` probe before you treat it as a content gap: `security`'s NoSQL
+operator-injection miss is 1/8 on haiku and 3/3 on sonnet.
+
+Activation cases **hard-block subagent spawning**, and must keep doing so. A dispatched subagent
+preloads paved-path skills in its own frontmatter and its file reads land in the *parent* trace, so
+`skillEngaged` would report an activation the session never performed — measured: `architecture-
+reviewer` preloads `onion-architecture` and turned a true zero into an apparent engagement. Because
+`bypassPermissions` ignores an allow-list, this only works through `disallowedTools`.
+
+Note that `results/history.jsonl` stores the **vitest state**, where an indicative miss is a
+`pass` — so `eval:compare` cannot see an activation flip. Use the summary or `eval:repeat`
+(both read `records.jsonl`, which stores the measured outcome) for that question.
 
 ### Optional: cheap models via the LiteLLM proxy
 
