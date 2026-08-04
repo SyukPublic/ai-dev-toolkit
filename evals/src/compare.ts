@@ -113,15 +113,56 @@ function loadRuns(records: EvalRecord[]): Map<string, Run> {
   return runs;
 }
 
-/** run_id → the nodeids vitest actually executed, for the died-before-scoring cross-check. */
+/**
+ * The two ledgers cannot be compared on `nodeid` directly — they are built differently:
+ *
+ *   history: `plugins/…/review-workflow.eval.ts > API-route task reads api-guidelines …`
+ *   records: `E:/…/plugins/…/review-workflow.eval.ts > workflow:review > API-route task reads …`
+ *
+ * history's comes from the vitest reporter (relative path, describe level flattened away); records' is
+ * `state.testPath` plus `state.currentTestName`, which is absolute and keeps the describe chain. So the
+ * key is (file BASENAME, LEAF test name), which both can produce. Collision risk: two cases with the
+ * same leaf name in one file under different describes. None exist here, and a collision would only
+ * hide a died-before-scoring row, never invent one.
+ */
+export const crossKey = (nodeid: string): string => {
+  const parts = nodeid.split(" > ");
+  const base = parts[0].split(/[\\/]/).pop() ?? parts[0];
+  return `${base}|${parts[parts.length - 1]}`;
+};
+
+/**
+ * run_id → executed leaf cases, for the died-before-scoring cross-check.
+ *
+ * Restricted to `*.eval.ts`, because only those call `record()`. `history.jsonl` is written by a vitest
+ * reporter and so also holds the pure unit tests under `src/`, which never write a records row by
+ * design — counting those made the first full run report 181 phantom casualties.
+ */
 function loadHistoryNodes(): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
   if (!existsSync(HISTORY)) return out;
   for (const line of readFileSync(HISTORY, "utf8").split("\n").filter(Boolean)) {
     const r = JSON.parse(line) as { run_id: string; nodeid: string };
+    if (!r.nodeid.split(" > ")[0].endsWith(".eval.ts")) continue;
     const set = out.get(r.run_id) ?? new Set<string>();
     set.add(r.nodeid);
     out.set(r.run_id, set);
+  }
+  return out;
+}
+
+/**
+ * The describe labels records has seen per file, e.g. `skill:security`, `agent:test-writer`. Rows for
+ * those appear in history written before the reporter was fixed to emit leaf tests only — a `describe`
+ * block carries a result state too. Derived from the data rather than pattern-matched on `skill:`/
+ * `agent:`/`workflow:`, so it stays correct if the tier prefixes ever change.
+ */
+function suiteLabels(records: EvalRecord[]): Set<string> {
+  const out = new Set<string>();
+  for (const r of records) {
+    const parts = r.nodeid.split(" > ");
+    const base = parts[0].split(/[\\/]/).pop() ?? parts[0];
+    for (const middle of parts.slice(1, -1)) out.add(`${base}|${middle}`);
   }
   return out;
 }
@@ -230,13 +271,18 @@ function main() {
   // Cases vitest ran but that never reached scoring: the session threw inside task(), so record()
   // never wrote a row. Only detectable because both ledgers now share the run id.
   const history = loadHistoryNodes();
+  const suites = suiteLabels(records);
   for (const [id, run] of [
     [ids[0], a],
     [ids[1], b],
   ] as const) {
     const ran = history.get(id);
     if (!ran) continue;
-    const dead = [...ran].filter((n) => !run.outcomes.has(n));
+    const scored = new Set([...run.outcomes.keys()].map(crossKey));
+    const dead = [...ran].filter((n) => {
+      const key = crossKey(n);
+      return !scored.has(key) && !suites.has(key);
+    });
     if (!dead.length) continue;
     console.log(`\n${YELLOW}died before scoring in ${id}: ${dead.length}${RESET}`);
     console.log(`${DIM}  vitest executed these but no record was written — the session threw inside task().${RESET}`);
