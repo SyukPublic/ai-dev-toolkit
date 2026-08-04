@@ -14,6 +14,19 @@
   on a genuine auth-code review improved as well (60% → 80%). The guidance itself is
   unchanged — only the targeting.
 
+  **Correction (2026-08-04): the two figures above do not hold.** Each was a single
+  five-run series, and at a rate near 50% that carries roughly ±22 points — far too
+  little to separate 40% from 80%. Pooling every series since recorded against this
+  description gives **7/20 (35%)** correct non-engagement and **8/22 (36%)** engagement,
+  so there is no evidence the rewrite moved either number.
+
+  The rewrite itself is still right, and the reason the measurement was misleading is
+  the model it was taken on. Re-run unchanged against a stronger model
+  (`claude-sonnet-5`, n=5), the same two cases score **5/5 and 5/5** — the description
+  discriminates perfectly in both directions for a model able to follow it, while
+  `claude-haiku-4-5` manages 4/20. The published numbers measured the model, not the
+  targeting. Nothing in the skill changed as a result of this correction.
+
 ## 1.0.2 - 2026-08-03
 
 - `fastify-best-practices`: moved the 19 rule files from `rules/` into `references/`.
