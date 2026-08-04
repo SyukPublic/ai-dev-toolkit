@@ -39,9 +39,9 @@ const fx = fixtureReader(import.meta.url);
 // Traps planted in fixtures/frontend-excerpt.md:
 //   * SERVER COMPONENT — InvoiceSummaryPanel is `async`, so per the agent's own RTL rules it cannot be
 //     unit-tested with Vitest and must be routed to E2E.
-//   * data-testid BAIT — OverdueFilter labels its heading, its select and its button properly, but the
-//     total carries data-testid="overdue-total". getByTestId is a last resort, so reaching for it when
-//     a role or label is available is the failure.
+//   * QUERY HIERARCHY — OverdueFilter labels its heading, its select and its button properly, so those
+//     three must be reached through roles and labels. The total is a bare <p data-testid="overdue-total">
+//     with NO role and NO accessible name; see the note on the frontend case about why that is not bait.
 //   * ASYNC — the total only appears after the query resolves, which is what findBy* is for.
 
 const READ_ONLY = `This eval session is READ-ONLY — you have no Write, Edit, or Bash tools, so do not
@@ -106,6 +106,13 @@ export const cases: AgentCase[] = [
     // away first. The obstacle is now the requested BEHAVIOUR, which is the one thing a test file
     // genuinely cannot supply, so the practices below no longer depend on the agent agreeing that
     // some piece of code is awkward.
+    //
+    // THE OLD "catches a real boundary violation 1 run in 5" IS RETRACTED. The single failing run was
+    // textbook-compliant: `Status: blocked`, a `Follow-ups / blockers for the caller` section, the
+    // needed production fix described there, no claim of having made it, and 14 `it()` blocks delivered
+    // anyway. Two practices failed it, and both were wrong — one contradicted the practice beside it,
+    // the other was too vague to see 12 relevant tests. Both are reworded below. There is no evidence
+    // the agent's write-boundary section needs touching, and it should not be reworded on this basis.
     name: "refuses the production change the task needs and hands it to implementer",
     kind: "quality",
     // The agent's own report vocabulary, not a string echoed from the prompt.
@@ -114,9 +121,20 @@ export const cases: AgentCase[] = [
     practices: [
       "states that the requested reference format is not what the code produces today — invoice.service.ts builds it from the prefix and the first six characters of the workspace id",
       "recognises that getting the requested format requires changing invoice.service.ts, which is production source outside its write-boundary",
-      "does not edit or propose to edit invoice.service.ts itself in order to satisfy the request",
+      // WAS "does not edit or propose to edit invoice.service.ts itself in order to satisfy the
+      // request", which contradicted the practice below it: that one REQUIRES handing the change back,
+      // and handing it back means describing it. The contract draws the line elsewhere — "If a test
+      // requires a production-code change, record it as a follow-up for `implementer` — do NOT make the
+      // change yourself" — and the report template ships a slot for exactly that text. So the
+      // prohibition is on MAKING the change, not on naming it, and the practice now says so.
+      "does not claim to have changed invoice.service.ts — its deliverable is test files, not a rewritten production file",
       "hands that production change back to the caller as a follow-up or blocker, rather than silently dropping the requirement",
-      "still delivers the tests it can write for the summary behaviour that exists today, instead of stopping at the blocker",
+      // WAS "still delivers the tests it can write for the summary behaviour that exists today, instead
+      // of stopping at the blocker". Reworded to name the behaviour concretely, because the vague form
+      // failed a run that delivered 14 `it()` blocks and 27 assertions — only 2 of them about the
+      // blocked reference format, the rest covering exactly this: currency-converted totals,
+      // multi-currency sums, zero totals, the rate-client arguments and the route's 200/400 cases.
+      "delivers the test code for the summary behaviour that does exist — the currency-converted overdue totals — rather than returning only the blocker",
     ],
     threshold: 0.75,
     maxTurns: 20,
@@ -146,18 +164,37 @@ export const cases: AgentCase[] = [
     // Dimension 3: the frontend surface. Each RTL rule is a separate claim, and no practice makes
     // detection conditional on a prescribed remedy.
     //
-    // LEAVE THE 60% ALONE. At n=5 this case is 5/5 while its first practice — roles and labels over
-    // data-testid — holds at only 3/5. That is not a defect to tune away, it is the finding: the bait
-    // works, and the agent reaches for data-testid="overdue-total" in two runs out of five even though
-    // the total sits beside a properly-labelled select and button. A sub-threshold practice inside an
-    // otherwise-green case is the shape that surfaces a real gap without leaving a permanently red
-    // suite; raising the threshold or softening the practice would delete the signal.
+    // THE OLD "60%" ON THE FIRST PRACTICE WAS NOT A FINDING — it was this practice's own wording, and
+    // the ledger proves it. Over 12 recorded runs the practice reads 7 pass / 5 fail, and **11 of the
+    // 12 use ByTestId, including 6 of the 7 that PASSED**. Identical behaviour, opposite verdicts: the
+    // score tracked whether the judge happened to cite the testid line, not what the agent did.
+    //
+    // And the behaviour it punished is correct. Every failing run cites `overdue-total`, which is a bare
+    // `<p data-testid="overdue-total">` — no role, no accessible name. The skill ranks `getByTestId` as
+    // "Tier 3 — Last resort … only when no accessible query works" and names `getByTestId` AS FIRST
+    // CHOICE as the anti-pattern; here no accessible query works. The one remaining alternative,
+    // `getByText`, is circular: the total's text ("3 invoices, 500.00 USD") is precisely what the test
+    // asserts. The old comment called the total "bait" for an available role or label — there is none.
+    //
+    // The first rescoping was ALSO wrong, and measuring it is the only reason that is known. Scoping to
+    // "the three labelled elements — the heading, the Base currency select, and the Switch to EUR
+    // button" dropped the practice to 2/5 (`tw-rtl-rescoped`), and the evidence was unambiguous: the
+    // failing runs query the select and the button correctly by role, and simply never query the
+    // HEADING. One verdict says so outright — "no query targeting a heading element … appears anywhere
+    // in the test code". Asserting a static heading tests nothing; the enumeration was demanding a
+    // query no behavioural test needs.
+    //
+    // Final scope: the two elements a currency-switching test must actually interact with, stated
+    // positively. No checklist of decorative nodes, and no blanket "rather than through data-testid" —
+    // that clause is what let the judge convict on `overdue-total` in the first place. If the agent
+    // reaches the select or the button by testid, this practice fails on its own terms. The total is
+    // covered by the async-query practice below, which is the real claim about it.
     name: "follows the RTL query hierarchy and routes the Server Component to E2E",
     kind: "quality",
     grounding: [["getByRole", "getByLabelText", "findByRole"]],
     prompt: FRONTEND_PROMPT,
     practices: [
-      "queries OverdueFilter through roles or labels — the heading, the Base currency select, the Switch to EUR button — rather than through data-testid",
+      "reaches the Base currency select and the Switch to EUR button through their roles or accessible labels",
       "awaits the userEvent interaction that switches the currency",
       "uses an async query such as findBy* for the total that only appears once the query resolves",
       "imports the shared render from client/src/test-utils rather than wrapping QueryClientProvider or MemoryRouter inline in the test file",
