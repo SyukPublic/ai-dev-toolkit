@@ -56,6 +56,42 @@ export interface RunOptions {
   stopWhen?: (partial: Pick<Result, "subagents" | "filesRead" | "skillsInvoked" | "toolsUsed">) => boolean;
 }
 
+/**
+ * Assemble the judged artifact from a session: the WHOLE transcript, not just the SDK's final text.
+ *
+ * `resultText` is the result message's `result` field, i.e. the LAST assistant message. Preferring it
+ * (`resultText || textParts.join()`, the original) silently DISCARDED the deliverable whenever the
+ * agent said anything after it. Measured: a `researcher` run whose entire recorded output was "The
+ * background exploration agent has completed. My research report above already covers the complete
+ * answer …" while the report itself was gone — the trace showed `toolCallCount: 59`, subagent
+ * `Explore` and every relevant file read, but the wrap-up carried no `PROJECT` heading and no route
+ * literal, so the grounding gate failed, the judge never ran, and the row read as a content failure.
+ * A FALSE RED, invisible unless you notice 59 tool calls cannot fit the reported 6.5 s duration.
+ *
+ * `textParts` already holds every text block including the final one, so `resultText` is normally
+ * redundant — hence the containment check rather than an unconditional join: nothing is lost, and the
+ * usual case does not get the last message twice.
+ *
+ * The cost, and its exact scope. Intermediate narration ("Let me search more broadly…") is now part
+ * of the judged artifact in every tier, so:
+ *   - A NEGATIVE practice ("does not do X") can only get STRICTER — extra text can add evidence
+ *     against the agent, never remove it. False greens are impossible for these by construction.
+ *     Confirmed empirically: the one big swing seen after this change (planner `stop-and-ask` 2/5 →
+ *     5/5) was haiku behaving differently, not masking — 3 of 5 pre-fix outputs contained "Phase 1"
+ *     or "traceability" and 0 of 5 post-fix ones did, and narration cannot delete a word.
+ *   - A POSITIVE practice ("does X") is the exposed direction: narration can supply the evidence the
+ *     report itself never printed. Not observed causing a flip, but n=5 against a model as variable
+ *     as haiku cannot rule it out. If a positive practice ever passes suspiciously, read the output
+ *     file and check whether the quote came from the report or from the search narration.
+ */
+export function assembleText(textParts: string[], resultText: string): string {
+  const transcript = textParts.join("\n");
+  if (resultText && !transcript.includes(resultText)) {
+    return [transcript, resultText].filter(Boolean).join("\n");
+  }
+  return transcript || resultText;
+}
+
 /** Run one headless Claude turn-loop and extract what it ACTUALLY did (not its prose). */
 export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<Result> {
   const allowedTools = opts.allowedTools ?? [];
@@ -180,7 +216,7 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
   if (stoppedEarly && durationMs === 0) durationMs = Date.now() - startedAt;
 
   return {
-    text: resultText || textParts.join("\n"),
+    text: assembleText(textParts, resultText),
     toolsUsed: [...new Set(tools)],
     subagents: [...new Set(subagents)],
     skillsInvoked: [...new Set(skills)],
