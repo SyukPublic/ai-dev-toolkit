@@ -39,7 +39,37 @@ export function git(repoRoot, ...gitArgs) {
 }
 
 export const readJson = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
-export const writeJson = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
+
+/**
+ * Rewrites ONLY the `version` value in a manifest and leaves every other byte alone.
+ *
+ * Deliberately not `writeFileSync(file, JSON.stringify(manifest, null, 2))`: re-serialising
+ * the parsed object reformats the whole file, expanding this repo's compact
+ * `"author": { "name": ... }`, single-line `keywords` and single-line `dependencies` entries.
+ * The result is a one-line version change buried in style churn, hand-reverted for 1.0.1,
+ * 1.0.2 and 1.0.3 before this helper existed (sdd-engineering 1.1.0 was missed and shipped
+ * expanded).
+ *
+ * The match is anchored to a two-space indent so it can only hit the top-level field —
+ * every `dependencies` entry carries a nested `version` key. Both the match count and a
+ * re-parse of the result are asserted, so a manifest formatted some other way fails loudly
+ * instead of being patched in the wrong place.
+ */
+export function setManifestVersion(file, version) {
+  const content = fs.readFileSync(file, 'utf8');
+  const versionRe = /^ {2}("version"\s*:\s*)"[^"]*"/gm;
+  const hits = content.match(versionRe) ?? [];
+  if (hits.length !== 1) {
+    throw new Error(
+      `expected exactly one top-level "version" field in ${file}, found ${hits.length}`,
+    );
+  }
+  const next = content.replace(versionRe, (_match, key) => `  ${key}${JSON.stringify(version)}`);
+  if (JSON.parse(next).version !== version) {
+    throw new Error(`patching "version" in ${file} did not set the top-level field`);
+  }
+  fs.writeFileSync(file, next);
+}
 
 /**
  * Release tag naming. The `--v` separator is not cosmetic: Claude Code lists

@@ -62,6 +62,14 @@ export interface EvalRecord {
   threshold?: number;
   practices: PracticeVerdict[];
   grounded?: number;
+  /**
+   * How the session ENDED, not a verdict — optional because rows written before it was persisted do
+   * not carry it. `is_error: true` with `error_subtype: "error_max_turns"` is the normal, PASSING
+   * ending for a negative activation case. Use these to tell a truncated or failed run from a genuine
+   * content miss before diagnosing a red.
+   */
+  is_error?: boolean;
+  error_subtype?: string;
   num_turns: number;
   metrics: { durationMs: number; inputTokens: number; outputTokens: number; toolCallCount: number };
   trace: { tools: string[]; subagents: string[]; skills: string[]; reads: string[] };

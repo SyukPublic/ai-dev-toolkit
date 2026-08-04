@@ -166,9 +166,22 @@ preloads paved-path skills in its own frontmatter and its file reads land in the
 reviewer` preloads `onion-architecture` and turned a true zero into an apparent engagement. Because
 `bypassPermissions` ignores an allow-list, this only works through `disallowedTools`.
 
-Note that `results/history.jsonl` stores the **vitest state**, where an indicative miss is a
-`pass` — so `eval:compare` cannot see an activation flip. Use the summary or `eval:repeat`
-(both read `records.jsonl`, which stores the measured outcome) for that question.
+`eval:compare` reads `records.jsonl`, so it **can** see an activation flip. `results/history.jsonl`
+stores the **vitest state**, where an indicative miss is deliberately a `pass`, which is why compare
+no longer uses it as its outcome source — measured divergence at the time of the switch:
+`mermaid-diagram` 1/4 in records against 4/4 in history.
+
+Because a flip between two single runs is weak evidence, compare classifies each one against the
+case's **pooled lifetime rate at the same model**, and reports only flips that depart from that norm.
+A case sitting at 12/37 flips on its own, and a case that always fails at a model has not "regressed"
+by failing again. Everything else is listed under *within known variance* — visible, but not counted.
+`pnpm eval:repeat <pattern> -n 5` is still the only way to say anything about those.
+
+`history.jsonl` is still written, and now has a real consumer: since both ledgers key on the same
+`EVAL_RUN_ID`, a case present in history but absent from records for that run is one that **died
+before scoring** (the session threw inside `task()`, so `record()` never ran). Compare reports those
+separately. Note `eval:repeat` passes `--reporter=dot`, which replaces the configured reporters, so
+its runs write records but no history.
 
 ### Optional: cheap models via the LiteLLM proxy
 

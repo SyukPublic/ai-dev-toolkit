@@ -17,7 +17,7 @@ import {
   prependChangelogEntry,
   readJson,
   resolveRepoRoot,
-  writeJson,
+  setManifestVersion,
 } from './lib/release-utils.mjs';
 
 const args = process.argv.slice(2);
@@ -42,19 +42,18 @@ const current = manifest.version ?? '0.0.0';
 let next;
 try {
   next = bumpVersion(current, kind);
+  // Before the changelog, so a manifest this cannot patch safely leaves nothing half-done.
+  setManifestVersion(manifestFile, next);
 } catch (e) {
   console.error(`plugin ${plugin}: ${e.message}`);
   process.exit(1);
 }
 
-manifest.version = next;
-writeJson(manifestFile, manifest);
-
 const added = prependChangelogEntry(changelogPath(repoRoot, plugin), next, [
   'TODO: describe the changes in this release.',
 ]);
 
-console.log(`${plugin}: ${manifest.version === next ? `${current} -> ${next}` : next}`);
+console.log(`${plugin}: ${current} -> ${next}`);
 console.log(`  - version updated in ${path.relative(repoRoot, manifestFile)}`);
 console.log(
   added

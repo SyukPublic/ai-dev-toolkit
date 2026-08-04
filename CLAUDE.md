@@ -145,7 +145,7 @@ pnpm eval:scaffold        # list artifacts / scaffold an eval trio
 pnpm eval:repeat <pattern> -n 2 --label before   # stability across runs
 pnpm eval:delta before after                     # per-practice diff of two labeled series
 pnpm eval:benchmark <pattern> -n 5               # lift: with vs without the artifact
-pnpm eval:compare                                # pass/fail flips between the last two runs
+pnpm eval:compare                                # flips between the last two runs, vs each case's lifetime rate
 
 pnpm typecheck            # the only eval-side check CI would run
 ```
@@ -228,8 +228,8 @@ project's Onion Architecture", not a particular service).
   neither its contents nor its name appears in the public repo. After a fresh clone the
   exclusion must be re-added: `echo .plans/ >> .git/info/exclude`. Never commit from it and
   never move the exclusion into `.gitignore`.
-- Branches follow `stages/NN` (currently on `stages/01`); `main` is the default and merging
-  to it publishes.
+- Branches follow `stages/NN`, numbered in sequence; `main` is the default and merging to it
+  publishes.
 - CI: `validate.yml` on every push/PR; `site-build.yml` on PRs and non-main pushes;
   `deploy-pages.yml` and `tag-releases.yml` on `main`. Evals are never wired into CI.
 - Security-sensitive changes (hooks, MCP servers, executables) get line-by-line code-owner

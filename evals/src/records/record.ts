@@ -13,14 +13,17 @@ import { expect } from "vitest";
 import { EVAL_CONFIG, EVAL_JUDGE_MODEL } from "../config.js";
 import { RESULTS_DIR } from "../artifacts/paths.js";
 import { gitInfo } from "../git.js";
+import { currentRunId } from "../run-id.js";
 import type { Result } from "../runtime/run-claude.js";
 import type { Verdict } from "../scoring/llm-judge.js";
 
 const RECORDS = join(RESULTS_DIR, "records.jsonl");
 const OUTPUTS = join(RESULTS_DIR, "outputs");
 
-// One id per process (per vitest run), same format as the trend reporter.
-const RUN_ID = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "");
+// One id per RUN, read from the environment (global-setup.ts stamps it in the main process before
+// workers fork). Stamping it here instead was per WORKER, which split one `pnpm eval` into several
+// ids and made run_id useless for grouping — see src/run-id.ts.
+const RUN_ID = currentRunId();
 const { sha: GIT_SHA, dirty: DIRTY } = gitInfo();
 
 const slugify = (s: string): string =>
@@ -81,6 +84,15 @@ export function record(label: string, data: RecordData): void {
     nodeid,
     label,
     outcome,
+    // HOW the session ended, which the row could not express before. `outcome` alone conflates a
+    // content failure with a run that never produced content: a turn-cap end, an API error, a crash.
+    // `runClaude` already classifies this (`error_max_turns` vs `error`) and it was being thrown away,
+    // so nothing downstream could tell a truncated answer from a bad one — the ledger had to be
+    // cross-read against durations and tool counts by hand. Note `is_error: true` is NORMAL and
+    // PASSING for a negative activation case, which is designed to run to the cap; it is a
+    // description of the ending, not a verdict.
+    is_error: result.isError,
+    error_subtype: result.errorSubtype,
     score: verdict?.score,
     threshold,
     practices: verdict?.results ?? [],

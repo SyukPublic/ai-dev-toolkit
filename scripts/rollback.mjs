@@ -26,7 +26,7 @@ import {
   readJson,
   releaseTagPrefix,
   resolveRepoRoot,
-  writeJson,
+  setManifestVersion,
 } from './lib/release-utils.mjs';
 
 const args = process.argv.slice(2);
@@ -88,10 +88,8 @@ if (toValue) {
 
 git(repoRoot, 'checkout', `${tagPrefix}${target}`, '--', `plugins/${plugin}`);
 
-const restored = readJson(manifestFile);
 const next = bumpVersion(current, 'patch');
-restored.version = next;
-writeJson(manifestFile, restored);
+setManifestVersion(manifestFile, next);
 
 prependChangelogEntry(changelogPath(repoRoot, plugin), next, [
   `Rolls the plugin back to the content of ${target} (reverts ${current}).`,

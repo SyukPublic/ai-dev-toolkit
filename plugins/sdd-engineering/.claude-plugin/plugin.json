@@ -3,18 +3,9 @@
   "displayName": "SDD Engineering",
   "version": "1.1.0",
   "description": "Spec-driven development workflow: spec, plan, implement, verify - with run orchestration and retro tooling",
-  "author": {
-    "name": "Roman Halas"
-  },
+  "author": { "name": "Roman Halas" },
   "license": "MIT",
-  "keywords": [
-    "sdd",
-    "spec-driven",
-    "workflow",
-    "agents",
-    "planning",
-    "orchestration"
-  ],
+  "keywords": ["sdd", "spec-driven", "workflow", "agents", "planning", "orchestration"],
   "dependencies": [
     { "name": "engineering-paved-path", "version": "^1.0.0" },
     { "name": "research-tools", "version": "^1.0.0" },
