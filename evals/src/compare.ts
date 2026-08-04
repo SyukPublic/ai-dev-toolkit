@@ -57,8 +57,20 @@ export type FlipVerdict = "regressed" | "improved" | "variance";
  * later run is not an "improvement"; the earlier run was the outlier. Only two of the four combinations
  * are news.
  */
-export function classifyFlip(passedInB: boolean, lt: { passed: number; total: number; rate: number }): FlipVerdict {
+export function classifyFlip(
+  passedInB: boolean,
+  lt: { passed: number; total: number; rate: number },
+  /**
+   * B's session ended in a genuine failure (`error_subtype: "error"` — an API error, a crash) rather
+   * than by producing a bad answer. Such a row is not a regression at any lifetime rate: measured, an
+   * `API Error: 529 Overloaded` cost a whole run of five and its rows carry `outputTokens: 0` with an
+   * empty `practices`, which reads as a failing case. A turn-cap end is NOT this — it is the normal,
+   * passing ending for a negative activation case, so callers must not pass `error_max_turns` here.
+   */
+  bFailedToRun = false,
+): FlipVerdict {
   if (lt.total < MIN_LIFETIME) return "variance"; // 3/3 is not 100%
+  if (bFailedToRun) return "variance";
   if (lt.rate >= STABLE_HI && !passedInB) return "regressed";
   if (lt.rate <= STABLE_LO && passedInB) return "improved";
   return "variance";
@@ -71,6 +83,8 @@ interface Run {
   configs: Set<string>;
   outcomes: Map<string, boolean>;
   labels: Map<string, string>;
+  /** nodeids whose session failed to RUN (not a bad answer). Absent on rows predating the field. */
+  failedToRun: Set<string>;
 }
 
 function loadRuns(records: EvalRecord[]): Map<string, Run> {
@@ -85,11 +99,15 @@ function loadRuns(records: EvalRecord[]): Map<string, Run> {
         configs: new Set<string>(),
         outcomes: new Map<string, boolean>(),
         labels: new Map<string, string>(),
+        failedToRun: new Set<string>(),
       } satisfies Run);
     if (r.model) run.models.add(r.model);
     if (r.config) run.configs.add(r.config);
     run.outcomes.set(r.nodeid, r.outcome);
     run.labels.set(r.nodeid, r.label);
+    // "error", not "error_max_turns": a turn-cap end is the normal, passing ending for a negative
+    // activation case, while "error" means the session never got to produce an answer.
+    if (r.error_subtype === "error") run.failedToRun.add(r.nodeid);
     runs.set(r.run_id, run);
   }
   return runs;
@@ -181,9 +199,11 @@ function main() {
     // different models the comparison is suspect anyway and the warning above says so.
     const lt = lifetime(records, node, [...b.models][0]);
     const pct = `${lt.passed}/${lt.total} ${Math.round(lt.rate * 100)}%`;
-    const line = `${shortNode(node, label)}  ${DIM}lifetime ${pct}${RESET}`;
+    const bFailedToRun = b.failedToRun.has(node);
+    const why = bFailedToRun ? `${DIM} [session errored, not a bad answer]${RESET}` : "";
+    const line = `${shortNode(node, label)}  ${DIM}lifetime ${pct}${RESET}${why}`;
 
-    const verdict = classifyFlip(ob, lt);
+    const verdict = classifyFlip(ob, lt, bFailedToRun);
     if (verdict === "regressed") lost.push(`- ${line}`);
     else if (verdict === "improved") gained.push(`+ ${line}`);
     else unstable.push(`${ob ? "+" : "-"} ${line}`);

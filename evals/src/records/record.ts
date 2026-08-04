@@ -84,6 +84,15 @@ export function record(label: string, data: RecordData): void {
     nodeid,
     label,
     outcome,
+    // HOW the session ended, which the row could not express before. `outcome` alone conflates a
+    // content failure with a run that never produced content: a turn-cap end, an API error, a crash.
+    // `runClaude` already classifies this (`error_max_turns` vs `error`) and it was being thrown away,
+    // so nothing downstream could tell a truncated answer from a bad one — the ledger had to be
+    // cross-read against durations and tool counts by hand. Note `is_error: true` is NORMAL and
+    // PASSING for a negative activation case, which is designed to run to the cap; it is a
+    // description of the ending, not a verdict.
+    is_error: result.isError,
+    error_subtype: result.errorSubtype,
     score: verdict?.score,
     threshold,
     practices: verdict?.results ?? [],

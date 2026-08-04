@@ -42,4 +42,15 @@ describe("classifyFlip", () => {
   it("has no history at all to judge from", () => {
     expect(classifyFlip(false, lt(0, 0))).toBe("variance");
   });
+
+  it("never calls a session that failed to RUN a regression, however stable the case is", () => {
+    // The measured case: API Error 529 cost a whole run of five, and its rows carry outputTokens 0
+    // with an empty practices array — which otherwise reads as a rock-solid case regressing.
+    expect(classifyFlip(false, lt(20, 20), true)).toBe("variance");
+    expect(classifyFlip(false, lt(11, 12), true)).toBe("variance");
+  });
+
+  it("still reports the regression when the session ran fine and simply answered badly", () => {
+    expect(classifyFlip(false, lt(20, 20), false)).toBe("regressed");
+  });
 });
