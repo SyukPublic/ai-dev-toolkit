@@ -145,7 +145,7 @@ pnpm eval:scaffold        # list artifacts / scaffold an eval trio
 pnpm eval:repeat <pattern> -n 2 --label before   # stability across runs
 pnpm eval:delta before after                     # per-practice diff of two labeled series
 pnpm eval:benchmark <pattern> -n 5               # lift: with vs without the artifact
-pnpm eval:compare                                # pass/fail flips between the last two runs
+pnpm eval:compare                                # flips between the last two runs, vs each case's lifetime rate
 
 pnpm typecheck            # the only eval-side check CI would run
 ```
