@@ -4,6 +4,10 @@ import ActivationReporter from "./src/activation-reporter.js";
 
 export default defineConfig({
   test: {
+    // Stamps EVAL_RUN_ID once in the main process before workers fork, so records.jsonl and
+    // history.jsonl key on the SAME run id. Without it record.ts stamped its own per worker and one
+    // run became several — see src/run-id.ts for the measurement.
+    globalSetup: ["./src/global-setup.ts"],
     // *.eval.ts = model-backed evals; src/**/*.test.ts = the pure stats unit tests.
     include: ["**/*.eval.ts", "src/**/*.test.ts"],
     exclude: ["**/node_modules/**", "workspace-template/**"],

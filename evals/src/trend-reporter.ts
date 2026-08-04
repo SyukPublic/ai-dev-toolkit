@@ -17,6 +17,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { currentRunId } from "./run-id.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HISTORY = join(HERE, "..", "results", "history.jsonl");
@@ -39,7 +40,9 @@ interface TaskLike {
 }
 
 export default class TrendReporter {
-  private runId = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "");
+  // Same id record.ts uses — both read it from EVAL_RUN_ID (see src/run-id.ts), so a history row and
+  // its records row can finally be matched. Previously each stamped its own.
+  private runId = currentRunId();
   private sha = gitSha();
 
   onFinished(files: TaskLike[] = []) {
