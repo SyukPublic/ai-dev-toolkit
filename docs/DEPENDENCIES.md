@@ -11,10 +11,10 @@ semver ranges from the `dependencies` field.
 
 ```mermaid
 flowchart TD
-  SDD["sdd-engineering v1.0.0<br/>5 agents / 4 skills"]
-  EPP["engineering-paved-path v1.0.0<br/>8 stack skills"]
-  RT["research-tools v1.0.0<br/>agent: researcher"]
-  AR["architecture-review v1.0.0<br/>agent: architecture-reviewer"]
+  SDD["sdd-engineering<br/>5 agents / 4 skills"]
+  EPP["engineering-paved-path<br/>8 stack skills"]
+  RT["research-tools<br/>agent: researcher"]
+  AR["architecture-review<br/>agent: architecture-reviewer"]
 
   SDD -->|"^1.0.0"| EPP
   SDD -->|"^1.0.0"| RT
@@ -137,12 +137,17 @@ Reading the graph:
 
 ## Summary
 
-| Plugin | Version | Contents | Depends on |
-| ------ | ------- | -------- | ---------- |
-| [engineering-paved-path](../plugins/engineering-paved-path/README.md) | 1.0.0 | 8 skills: react-best-practices, react-frontend-architecture, react-testing-library, next-best-practices, fastify-best-practices, onion-architecture, security, typescript-expert | — |
-| [research-tools](../plugins/research-tools/README.md) | 1.0.0 | `researcher` agent (read-only: code, config, git, web) | — |
-| [architecture-review](../plugins/architecture-review/README.md) | 1.0.0 | `architecture-reviewer` agent (read-only layering/boundary audit) | engineering-paved-path `^1.0.0` |
-| [sdd-engineering](../plugins/sdd-engineering/README.md) | 1.0.0 | agents: spec-creator, implementation-planner, implementer, test-writer, plan-verifier; skills: run-plan, workflow-retro, engineering-insights, mermaid-diagram | all three `^1.0.0` |
+Versions are deliberately absent here — they live only in each plugin's
+`plugin.json`, and a number repeated in prose goes stale on the next release.
+Read the current one from the manifest, or from `/api/index.json` on the
+[catalog site](https://syukpublic.github.io/ai-dev-toolkit/).
+
+| Plugin | Contents | Depends on |
+| ------ | -------- | ---------- |
+| [engineering-paved-path](../plugins/engineering-paved-path/README.md) | 8 skills: react-best-practices, react-frontend-architecture, react-testing-library, next-best-practices, fastify-best-practices, onion-architecture, security, typescript-expert | — |
+| [research-tools](../plugins/research-tools/README.md) | `researcher` agent (read-only: code, config, git, web) | — |
+| [architecture-review](../plugins/architecture-review/README.md) | `architecture-reviewer` agent (read-only layering/boundary audit) | engineering-paved-path `^1.0.0` |
+| [sdd-engineering](../plugins/sdd-engineering/README.md) | agents: spec-creator, implementation-planner, implementer, test-writer, plan-verifier; skills: run-plan, workflow-retro, engineering-insights, mermaid-diagram | all three `^1.0.0` |
 
 Related conventions:
 
@@ -152,4 +157,6 @@ Related conventions:
   repo-relative paths.
 - Versions live only in each plugin's `plugin.json` (see
   [RELEASES.md](RELEASES.md)); merging a version bump to `main` creates the
-  `<plugin>-vX.Y.Z` tag automatically.
+  `<plugin-name>--vX.Y.Z` tag automatically. Note the **two** hyphens before the
+  `v`: that is the form the ranges above resolve against, and a single-hyphen tag
+  is invisible to dependency resolution.
