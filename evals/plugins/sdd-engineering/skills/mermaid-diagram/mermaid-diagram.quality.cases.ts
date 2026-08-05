@@ -32,8 +32,23 @@ ${REVIEW_TASK}`,
       // Split. As one practice reading "chooses a sequence diagram AND says why" this failed while
       // the grounding gate — which requires the literal `sequenceDiagram` in the output — passed,
       // so the model had demonstrably chosen right and was failed on the second clause.
+      //
+      // The "explains the choice" half was then REMOVED, and so was its twin in the state case.
+      // Measured `mermaid-content-n5`: 0/5 and 0/5 across the two cases, i.e. 10 consecutive
+      // failures, EVERY ONE with empty judge evidence — there was no sentence to quote, because the
+      // model draws the right diagram and never editorialises about the choice. Both cases still
+      // scored 5/5, so the miss was invisible in the case rate and only the practice column showed
+      // it. Three independent reasons not to reword it a third time:
+      //   1. The skill never asks for a rationale. `SKILL.md` has zero occurrences of
+      //      explain/why/justify/rationale; what it ships is a decision TABLE (subject → diagram
+      //      type → syntax, SKILL.md:27-28). The contract is the choice, not the narration.
+      //   2. Nothing is lost. The choice is already asserted twice — by the practice below and by
+      //      the grounding gate, which requires the literal `sequenceDiagram` / `stateDiagram`
+      //      token in the output. A model cannot pass those and have chosen wrongly.
+      //   3. It graded elaboration: it could only fail an answer for being correct in fewer words,
+      //      which is the playbook's explicit disqualifier. This was already its second wording,
+      //      and the rule for a third is to remove it instead.
       "chooses a sequence diagram (`sequenceDiagram`) rather than a flowchart",
-      "explains the choice: the subject is a set of calls between several services ordered in time",
       "gives each service its own participant and shows the calls between them in order, rather than modelling the steps as a single chain of process boxes",
       "represents the decline path — the 402 with nothing reserved — rather than diagramming only the happy path",
       "wraps the diagram in a triple-backtick `mermaid` code block so it renders in markdown",
@@ -49,9 +64,11 @@ ${REVIEW_TASK}`,
 ${REVIEW_TASK}`,
     grounding: ["stateDiagram"],
     practices: [
-      // Split for the same reason as the sequence case above.
+      // Split for the same reason as the sequence case above, and its "explains the choice" half
+      // removed for the same measured reason — see the sequence case. The two practices were the
+      // same shape and failed identically, 0/5 each with empty evidence, which is what made the
+      // diagnosis a pattern rather than one noisy practice.
       "chooses a state diagram (`stateDiagram-v2`) rather than a flowchart",
-      "explains the choice: the subject is an entity moving between states, not a sequence of process steps",
       "marks the start and the terminal states with `[*]`, covering both delivered and cancelled as endpoints",
       "labels the transitions with the events that cause them (paying, payment failure, retry, shipping, delivery, cancellation) rather than leaving bare arrows between states",
       "wraps the diagram in a triple-backtick `mermaid` code block so it renders in markdown",
