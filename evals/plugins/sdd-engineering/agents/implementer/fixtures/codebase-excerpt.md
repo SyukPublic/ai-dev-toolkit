@@ -1,17 +1,18 @@
-### server/src/platform/csv.ts
+### report-core/src/export/format-orders-csv.ts  (Phase 1 — complete)
 
 ```ts
-/** RFC 4180 CSV escaping. Used by the reporting exports. */
+/** Pure by contract: same input, same output, no I/O. RFC 4180 escaping lives here. */
 const NEEDS_QUOTING = /[",\n\r]/;
 
-export function csvEscape(value: unknown): string {
+const escapeCell = (value: unknown): string => {
   const s = String(value ?? '');
-  if (!NEEDS_QUOTING.test(s)) return s;
-  return `"${s.replace(/"/g, '""')}"`;
-}
+  return NEEDS_QUOTING.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
 
-export function csvRow(cells: unknown[]): string {
-  return cells.map(csvEscape).join(',');
+export function formatOrdersCsv(orders: readonly Record<string, unknown>[], columns: readonly string[]): string {
+  const header = columns.map(escapeCell).join(',');
+  const rows = orders.map((order) => columns.map((column) => escapeCell(order[column])).join(','));
+  return [header, ...rows].join('\n');
 }
 ```
 
