@@ -17,7 +17,57 @@ const fx = fixtureReader(import.meta.url);
 //   agent-7c02 cache_hit_pct 41                              < ~60% on a long agent ⇒ prompt churn
 //   agent-7c02 tool_errors 4                                 classify them, don't just count
 //   architecture.md + the plan read by all three agents      context-pack candidates
-//   plan-verifier: read-only, 29.8k output tokens            report bloat ⇒ tighten its contract
+//   plan-verifier: read-only, 58.4k output tokens            report bloat ⇒ tighten its contract
+//     (the largest output in the run, on the fewest api_turns)
+//
+// That last figure was 29.8k until it was measured, and 29.8k did not plant the rule it was meant
+// to plant. The practice sat at 0/5 on haiku AND 0/5 on sonnet — ten runs, every failure with empty
+// judge evidence — so the model was not weighing the lead and rejecting it, it never raised the
+// subject at all. Model ceiling was ruled out by that identical pair of rates, and the three usual
+// case defects were ruled out one by one: SKILL.md:67 states the rule verbatim ("Big output_tokens
+// on a read-only agent → report bloat; tighten its output contract"), the agent really is read-only
+// (`writes_paths: []`), and the prompt invites the lead ("Where is this run wasting tokens").
+//
+// What was actually wrong is that 29.8k was the THIRD largest output of four. Both implementers
+// emitted more (41.2k, 38.9k) and emitted it legitimately, because they wrote code. To reach the
+// rule from that fixture you had to partition the agents by `writes_paths` first and only then
+// compare within the read-only class — while the biggest number on the page belonged to someone
+// entitled to it. The other two leads in this case need no such step: 41% against 91/87/89 is a
+// visible outlier, and the duplicated reads are listed outright. So the fixture planted a valid
+// instance of the rule but not a SALIENT one.
+//
+// 29.8k → 58.4k makes it the largest output in the run, produced on the fewest api_turns, by the
+// one agent that wrote nothing. `totals.orchestrator_plus_agents.output` moved 122300 → 150900 to
+// keep the fixture's arithmetic honest — all four totals still equal the sum of the journals.
+// The practice's WORDING is deliberately untouched (only the figure it cites moved), so the
+// re-measure attributes to salience and nothing else.
+//
+// Prediction, recorded before measuring so the result is honest either way: if the practice now
+// fires, the earlier 0/5 was an artifact of fixture salience and this dimension is measurable. If
+// it still reads 0/5 against an unmissable instance, the miss is the skill's — SKILL.md:67 is
+// stated but not applied — and that is a genuine artifact finding, the session's first.
+//
+// RESULT (`retro-salience-fixed`, haiku, n=5): the first branch. The practice went 0/5 → 2/5 and
+// the passing runs cite exactly the intended reasoning — "Yet outputs 58.4k tokens — more than
+// either implementer (41.2k, 38.9k)" and "58.4k tokens on 54k input — nearly 1:1 ratio". So
+// SKILL.md:67 IS applied once the instance is salient, and there is NO artifact defect here; the
+// defect was the fixture's, and it is fixed. No collateral damage either: the cache-churn practice
+// moved 2/5 → 3/5 and the timing case, which injects the same fixture, held at 5/5 with its
+// writes_paths practice going 3/5 → 4/5.
+//
+// What 2/5 is NOT: a compound-practice failure. That was the obvious next hypothesis — the practice
+// does join a detection to a remedy — and the evidence refutes it. All three failing runs carry
+// EMPTY judge evidence, i.e. the model never raises the subject at all, rather than raising it and
+// omitting the remedy. Splitting the conjunction would move nothing.
+//
+// What 2/5 probably IS: this case's own documented failure mode, one level down. The header above
+// records that a single prompt asking for five leads scored 2/5 and that splitting BY TOPIC fixed
+// it — but this case still carries three leads (context pack, cache churn, output bloat), and its
+// name admits only two of them. Both case-level failures are runs where the cache lead AND the
+// output lead were missed together, which is the attention-budget signature rather than a knowledge
+// gap. The next step, if this dimension is wanted at a higher rate, is to give the output-bloat
+// lead its own scoped prompt — the same split that fixed the mermaid review, the timing case, and
+// run-plan's gate case. Not done here: (a) was scoped to answering artifact-vs-fixture, and it did.
 //
 // The leads are split across two cases BY TOPIC rather than gathered into one "analyse this"
 // prompt, and that grouping is load-bearing. A first version asked a single prompt to surface
@@ -65,7 +115,7 @@ ${METRICS}`,
     practices: [
       "identifies the files read by all three agents — docs/architecture.md and the order-export plan — as context-pack candidates that should be pre-fetched into the spawn prompt instead of being re-read by every agent",
       "flags agent-7c02's 41% cache hit rate as prompt churn on a long-running agent and recommends a stable shared prefix",
-      "flags the plan-verifier's 29.8k output tokens as report bloat for a read-only agent, and proposes tightening its output contract",
+      "flags the plan-verifier's 58.4k output tokens as report bloat for a read-only agent, and proposes tightening its output contract",
       "ends each point in a concrete action — an agent brief to refine, a file to pre-fetch, a frontmatter setting to change — rather than an observation with no follow-through",
     ],
     threshold: 0.7,
