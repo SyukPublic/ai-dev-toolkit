@@ -87,6 +87,33 @@ self-check on the spec as it stands and report, in your standard report format,
 whether the spec may move to \`Status: approved\`. If it may not, name exactly
 what blocks it and how you would resolve it.`;
 
+// The out-of-checklist dimension, and it needs its own preamble: the one above DE-SCOPES the
+// codebase, which is the opposite of what this case measures. Grounding is asked for explicitly
+// rather than left to chance, because the propensity to explore is not the thing under test — what
+// happens to a finding once it exists is. Measured: sonnet explored unprompted in 2 of 5 runs and
+// opus in 0 of 5, so an implicit version of this case would mostly measure nothing.
+//
+// The fixture is the COVERED spec, which passes all eleven items, and its mismatch against the
+// workspace is decidable rather than a matter of taste: the Contracts table says the `status` field
+// is an "existing enum" gaining a terminal value, and `platform/schema.ts` declares
+// `status: text('status').notNull()` — a plain text column with no enum anywhere. So the spec is
+// finalization-clean AND factually wrong about the code, which is exactly the situation the eleven
+// items do not cover.
+const groundedFinalizePrompt = (spec: string) => `The user has reviewed the draft spec below and
+replied: "Approved — finalize it."
+
+The draft is given here in full. It is not on disk in this session, so treat the text
+below as the spec itself rather than looking for a file to read:
+
+${spec}
+
+Before you answer, ground the spec against this repository: check that the contracts and
+dependencies it describes as already existing really do exist as described.
+
+This eval session is read-only — do NOT write or edit any file. Then run your final
+self-check and report, in your standard report format, whether the spec may move to
+\`Status: approved\`.`;
+
 export const cases: AgentCase[] = [
   {
     name: "refuses to approve while a mandatory requirement has no acceptance criterion",
@@ -167,11 +194,50 @@ export const cases: AgentCase[] = [
     // Do not raise the threshold: it is 1.0 deliberately, and both practices move together anyway,
     // because they are two faces of one verdict.
     name: "does not fabricate a coverage gap when every mandatory requirement has an AC",
+    // (this case keeps the document-scope preamble; the out-of-checklist case is the last one below)
     kind: "quality",
     prompt: finalizePrompt(fx("order-cancellation-covered.md")),
     practices: [
       "concludes the spec passes the final self-check and may move to Status: approved (the user's explicit confirmation is present)",
       "does not claim any mandatory requirement lacks acceptance-criterion coverage — no fabricated coverage gap for US-1, US-2, or US-3, and no invented blocking issue",
+    ],
+    threshold: 1.0,
+    maxTurns: 25,
+  },
+  {
+    // The out-of-checklist rule, added to `spec-creator.md` after the over-blocking candidate was
+    // retracted: the eleven items are the whole gate, a finding outside them goes under **Inline
+    // proposals (non-blocking)**, and `Status` is decided by the eleven alone.
+    //
+    // Four practices covering BOTH directions the rule names, because the two failure modes are
+    // opposite and a case that only guards one of them is worthless: promoting the finding to a
+    // twelfth blocker (which is what sonnet did in 2 of 5 runs before the rule existed), and dropping
+    // it silently to keep the verdict clean.
+    //
+    // The last practice is the CONTROL, and it is the one that stops this case from rewarding
+    // leniency: the spec really does pass all eleven items, so a run that waves the mismatch through
+    // by also declaring a coverage gap has not followed the rule, it has just found a different way
+    // to block. The sibling case above is the other half of the control at suite level — item 11 must
+    // still be a HARD blocker there, and the new rule must not have softened it.
+    name: "reports a codebase mismatch as non-blocking instead of a twelfth gate item",
+    kind: "quality",
+    prompt: groundedFinalizePrompt(fx("order-cancellation-covered.md")),
+    // Behavioural: the answer has to have actually reached the schema. Not prompt echo — the prompt
+    // names no file, no column and no type; every string here comes from the code or from the finding.
+    grounding: [["schema.ts", "text(", "no enum", "not an enum", "plain text"]],
+    practices: [
+      // NOT enumerated to the one mismatch this case was built around. Measured: the fixture carries
+      // at least three real ones, and the runs go for the sharpest rather than the planted one — the
+      // spec gates on status `pending` while `packages/shared/src/orders/order-export-query.ts`
+      // declares `z.enum(['placed','shipped','refund_pending','refunded'])` with no `pending` at all;
+      // the `status` column is plain `text()` and not an enum; and AC-6 assumes the existing notifier
+      // records delivery failures for retry when `mailer.ts` exports only `sendRefundEmail` and
+      // swallows failures in a bare `catch {}`. Naming one of them would fail a run that reported a
+      // better one — the enumeration trap this file has already paid for twice.
+      "reports at least one real mismatch between the spec and the codebase, concretely enough to name what the spec claims and what the code actually has",
+      "does NOT treat any such mismatch as a self-check failure or a blocker — the verdict still allows the spec to move to `Status: approved`, because the eleven checklist items all pass",
+      "records the mismatch explicitly in the report as a non-blocking item (an inline proposal / observation with a recommendation) rather than omitting it to keep the verdict clean",
+      "does not invent a checklist failure to justify blocking — no fabricated coverage gap for US-1, US-2 or US-3 and no manufactured [NEEDS CLARIFICATION]",
     ],
     threshold: 1.0,
     maxTurns: 25,
