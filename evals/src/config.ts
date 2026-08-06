@@ -41,6 +41,53 @@ export const EVAL_ACTIVATION_MODEL =
 export const EVAL_CONFIG = process.env.EVAL_CONFIG ?? "candidate";
 export const IS_BASELINE = EVAL_CONFIG === "baseline";
 
+/**
+ * Whether the content tier injects a skill's `references/*.md` alongside its `SKILL.md`.
+ *
+ * Default ON, which is the long-standing behaviour — but it is not obviously the right one, and this
+ * knob exists to MEASURE that rather than to argue about it. Three facts frame the question:
+ *
+ * - `CLAUDE.md` states this tier measures "what `SKILL.md` itself teaches". With references injected
+ *   that is true for the 7 skills which ship none, and false for the 5 that do.
+ * - Neither setting matches production, and they miss it in opposite directions. Claude Code injects
+ *   only the `SKILL.md` body and the model DECIDES to read a reference with the `Read` tool. Injecting
+ *   everything removes that decision; injecting nothing removes the material. So this tier cannot
+ *   measure retrieval either way, and a red in it does not say whether guidance or retrieval failed.
+ * - The payload is wildly uneven: `fastify-best-practices` injects 177,440 chars of which `SKILL.md`
+ *   is 4,574 (references are 38x the skill), `next-best-practices` 81,484, and every other skill
+ *   <= 22,539. The two bloated suites are also the two weakest measured — `fastify` 5/5, 4/5, 3/5 and
+ *   `next` 5/5, 3/5 — while `onion-architecture` (13,772, no references) returned 23/23 practices at
+ *   5/5. That is correlational only, on three points, which is exactly why it needs an A/B.
+ *
+ * Setting this to "0" is therefore an EXPERIMENT, not a fix. It is a no-op for the 7 reference-free
+ * skills (pinned by a unit test), so flipping it can never silently move those suites. If it is ever
+ * made the default, note that `records.jsonl` pools lifetime rates by CASE NAME and not by injected
+ * payload, so every historical row for the 5 affected suites was measured under the other setting.
+ *
+ * MEASURED, AND THE ANSWER IS "NOT AT THIS BUDGET" — do not re-run this A/B blind.
+ * `fastify-testing-fullrefs` vs `fastify-testing-skillonly`, one case, n=5 each, same sha. Headline
+ * looked decisive: the grounding gate (slot `["inject", "inject("]`) passed 1/5 with references and
+ * 4/5 without, at equal output length. It does not survive pooling. The same full-refs configuration
+ * had passed that gate 6/7 across every earlier series, so full-refs pools to 7/12 (58%) against
+ * skill-only's 4/5 (80%) and the arms do not separate. There is no confound — the commits between the
+ * two shas touch other suites only, and the flag defaults ON so arm 1 was byte-identical to history.
+ * It is within-configuration variance, and n=5 cannot see through it: separating 58% from 80% needs
+ * roughly 50 runs per arm, and pooling every case in the 5 affected suites at n=2 would still cost
+ * ~60 sessions. Outcome rates are the wrong instrument for this question.
+ *
+ * What the A/B DID establish, and it is worth keeping: when this case fails, the model answers with a
+ * different, adjacent, legitimate diagnosis — "`await app.close()` is not in a try-finally block, so
+ * if the assertion throws, cleanup never runs; use `t.after()`" — and never says `inject` at all. The
+ * grounding slot is doing its job: the skill's answer IS `inject()`, so a reply that never reaches it
+ * has not demonstrated the guidance, whatever else it got right.
+ *
+ * So the (b)-vs-(c) policy choice cannot be settled empirically here and should be decided on the
+ * construct grounds instead, which are not empirical at all: the tier's stated purpose ("what
+ * SKILL.md itself teaches") argues for injecting SKILL.md only, while wanting to measure retrieval
+ * argues for keeping both configurations and reading the PAIR. See .plans for that decision.
+ */
+export const EVAL_SKILL_REFS = (process.env.EVAL_SKILL_REFS ?? "1") !== "0";
+
 // --- Scoring / statistics thresholds ---------------------------------------
 export const DEFAULT_THRESHOLD = 0.6; // judge score gate for a quality case
 export const FLAKY_LOW = 0.2; // pass rate strictly inside (20%, 80%) is "flaky"
