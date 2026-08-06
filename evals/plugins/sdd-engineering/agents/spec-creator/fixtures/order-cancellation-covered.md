@@ -92,9 +92,11 @@ Order (changed fields):
 ## Non-functional
 - Performance: N/A — cancellation is a single-order write on the existing API
   budget; no new hot path.
-- Security: only the order owner (or an admin) may cancel; ownership is
-  enforced without leaking order existence (AC-3).
-- Accessibility: N/A — no new UI in this feature.
+- Security: only the order owner may cancel; ownership is enforced without
+  leaking order existence (AC-3).
+- Accessibility: the three cancellation fields AC-4 displays are read-only text
+  added to the existing admin order view and inherit its semantics; no new
+  interactive control and no new screen is introduced.
 - i18n: the confirmation notification reuses the project's existing message
   templates — no new locale dimension.
 
