@@ -29,6 +29,28 @@ const fx = fixtureReader(import.meta.url);
 // DIFFERENT fixtures (covered / uncovered) through the SAME path, so any on-disk file would
 // contradict one of them. Naming no path is the only coherent option, and it costs nothing — the
 // spec text is supplied in full, which is all either case needs.
+//
+// The scope clause exists because premise-chasing here is WHACK-A-MOLE, measured twice. This fixture
+// describes a feature whose domain is richer than `workspace-template` models, and every premise
+// fixed exposes the next one down: with ownership rescoped to `workspaceId`, the deep runs moved
+// straight on to `pending` not being an established status value (schema.ts has a bare
+// `text('status')`, no enum) — a mismatch that had been there all along and had simply been
+// outranked. Each round of that costs ~10 sessions and never converges.
+//
+// The clause is a CONSTRAINT, not a false claim, and the shipped contract is what justifies it: all
+// ELEVEN self-check items (`spec-creator.md:297-326`) are internal to the document — IDs, EARS tags,
+// coverage, traceability, status coherence — and the definition says "Any failing item is a HARD
+// blocker", enumerating exactly those. So a run that blocks on something it found by reading the
+// repository is adding a twelfth blocker the contract does not have. One failing run said so in its
+// own words: "Additional blocking finding (outside the numbered checklist, found via codebase
+// inspection)". Both cases carry the clause, so no future premise mismatch can bite either one.
+//
+// AGENT-SIDE CANDIDATE, deliberately NOT acted on: that over-blocking may be a real gap in
+// `spec-creator.md` — the checklist says what blocks but never says what to do with a finding that
+// is outside it, which is the same "an enumeration quietly narrows the instruction" shape as
+// `architecture-review` 1.0.1, inverted. It is 2/5 and only on deep runs, and this suite runs on
+// sonnet while the agent declares `model: opus`, so per the standing rule it needs confirmation on
+// the declared model before anything in the agent is touched. Do not edit the agent on this alone.
 const finalizePrompt = (spec: string) => `The user has reviewed the draft spec below and replied:
 "Approved — finalize it."
 
@@ -36,6 +58,11 @@ The draft is given here in full. It is not on disk in this session, so treat the
 below as the spec itself rather than looking for a file to read:
 
 ${spec}
+
+Scope for this answer: run the final self-check on the SPEC DOCUMENT. All eleven items
+are internal to the spec (IDs, EARS tags, coverage, traceability, status coherence), so
+you do not need the codebase to run them — do not treat what the repository does or does
+not already implement as a self-check failure.
 
 This eval session is read-only — do NOT write or edit any file. Run your final
 self-check on the spec as it stands and report, in your standard report format,
