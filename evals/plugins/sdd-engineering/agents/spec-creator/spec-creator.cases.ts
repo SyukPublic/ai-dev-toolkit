@@ -45,12 +45,30 @@ const fx = fixtureReader(import.meta.url);
 // own words: "Additional blocking finding (outside the numbered checklist, found via codebase
 // inspection)". Both cases carry the clause, so no future premise mismatch can bite either one.
 //
-// AGENT-SIDE CANDIDATE, deliberately NOT acted on: that over-blocking may be a real gap in
-// `spec-creator.md` — the checklist says what blocks but never says what to do with a finding that
-// is outside it, which is the same "an enumeration quietly narrows the instruction" shape as
-// `architecture-review` 1.0.1, inverted. It is 2/5 and only on deep runs, and this suite runs on
-// sonnet while the agent declares `model: opus`, so per the standing rule it needs confirmation on
-// the declared model before anything in the agent is touched. Do not edit the agent on this alone.
+// ~~AGENT-SIDE CANDIDATE~~ **RETRACTED on the declared model. Do NOT propose a `spec-creator.md`
+// change for this.** The hypothesis was that the over-blocking is a real gap — the checklist says
+// what blocks but never what to do with a finding outside it, the same "an enumeration quietly
+// narrows the instruction" shape as `architecture-review` 1.0.1, inverted.
+//
+// `spec-creator-opus-probe`, `EVAL_MODEL=claude-opus-5` (the model the agent declares), this case,
+// n=5, WITH THE SCOPE CLAUSE REMOVED so the behaviour had every chance to appear: **5/5, all four
+// practices 5/5**, and the trace is the finding — `turns: 1`, `tools: []`, `reads: []` in every one
+// of the five runs. Opus never opened the repository at all. It read the document question as a
+// document question and answered it, so there was no out-of-checklist finding to mishandle.
+//
+// So the definition holds at the declared model with no help from the case, and the behaviour is a
+// MID-TIER exploration artifact. Note the ordering is not monotonic in capability, which is the
+// opposite of the pattern these notes usually record: sonnet explored (2 of 5 runs, 18-20 turns,
+// 6-11 files) and over-blocked; opus explored less and judged better. The usual shape is a weaker
+// model passing falsely BY not looking — here the stronger model was right not to look, because
+// nothing in the task needed the codebase.
+//
+// The scope clause therefore stays, with its purpose corrected: it is not papering over a definition
+// gap, it removes a mid-tier exploration confound from a document-level measurement. It is redundant
+// at `opus` and load-bearing at the model this suite is actually calibrated on.
+//
+// Limit, stated so it is not overread: n=5 on opus cannot separate 20% from 5%. "Never in five runs"
+// means NOT CONFIRMED, not "cannot happen".
 const finalizePrompt = (spec: string) => `The user has reviewed the draft spec below and replied:
 "Approved — finalize it."
 
