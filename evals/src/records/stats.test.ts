@@ -10,6 +10,7 @@ import {
   calcStats,
   computeFlags,
   engagementByOutcome,
+  skillRefsUsed,
   type EvalRecord,
 } from "./stats.js";
 
@@ -37,6 +38,32 @@ const rec = (over: Partial<EvalRecord>): EvalRecord => ({
 /** An activation row: `activated` is the raw fact, `outcome` folds the polarity in. */
 const act = (over: Partial<EvalRecord>): EvalRecord =>
   rec({ case_kind: "activation", skill: "s", should_activate: true, indicative: true, ...over });
+
+describe("skillRefsUsed", () => {
+  test("reports one setting when a series is homogeneous", () => {
+    expect(skillRefsUsed([rec({ skill_refs: true }), rec({ skill_refs: true })])).toEqual(["refs"]);
+    expect(skillRefsUsed([rec({ skill_refs: false })])).toEqual(["skill-only"]);
+  });
+
+  test("reveals a mixed series, which is the whole point", () => {
+    // A rate pooled across these two is meaningless for any skill shipping references/.
+    expect(skillRefsUsed([rec({ skill_refs: true }), rec({ skill_refs: false })])).toEqual([
+      "refs",
+      "skill-only",
+    ]);
+  });
+
+  test("reports a pre-field row as unknown rather than assuming it had references", () => {
+    // Those rows really were all taken with references injected, but the row cannot prove it, so
+    // this reports instead of asserting — the same call made for `model` when it was added.
+    expect(skillRefsUsed([rec({})])).toEqual(["unknown"]);
+    expect(skillRefsUsed([rec({}), rec({ skill_refs: true })])).toEqual(["refs", "unknown"]);
+  });
+
+  test("is empty for no rows, so a caller cannot mistake absence for agreement", () => {
+    expect(skillRefsUsed([])).toEqual([]);
+  });
+});
 
 describe("calcStats", () => {
   test("mean / min / max / sample stddev of a known array", () => {

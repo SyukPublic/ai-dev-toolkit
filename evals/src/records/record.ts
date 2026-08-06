@@ -10,7 +10,7 @@
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "vitest";
-import { EVAL_CONFIG, EVAL_JUDGE_MODEL } from "../config.js";
+import { EVAL_CONFIG, EVAL_JUDGE_MODEL, EVAL_SKILL_REFS } from "../config.js";
 import { RESULTS_DIR } from "../artifacts/paths.js";
 import { gitInfo } from "../git.js";
 import { currentRunId } from "../run-id.js";
@@ -81,6 +81,16 @@ export function record(label: string, data: RecordData): void {
     // src/dsl/case.ts remains the only llmJudge caller (it passes no override).
     model: result.model,
     judge_model: EVAL_JUDGE_MODEL,
+    // WHAT was injected for a skill-tier row: SKILL.md alone, or SKILL.md plus its references/.
+    // Recorded for the same reason `model` is — those are two different measurements for the 5 skills
+    // that ship a references/ directory (fastify injects 177,440 chars against SKILL.md's 4,574), and
+    // without this field a probe run with EVAL_SKILL_REFS=0 would pool silently into the default
+    // series and quietly move every lifetime rate it touched. Always written, including on the 7
+    // skills and the agent/workflow tiers where it makes no difference, because a field that is
+    // sometimes absent cannot be grouped on. Rows predating it read as `undefined` — which is
+    // accurate, not a gap: they were all taken with references injected, but the ledger cannot prove
+    // that per row, so `skillRefsUsed` reports them as "unknown" rather than assuming.
+    skill_refs: EVAL_SKILL_REFS,
     nodeid,
     label,
     outcome,
