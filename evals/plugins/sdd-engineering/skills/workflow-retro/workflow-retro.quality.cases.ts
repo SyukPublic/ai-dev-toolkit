@@ -173,6 +173,20 @@ ${METRICS}`,
       // together and was penalised for not reciting the wording of a third. An enumeration inside a
       // practice adds requirements the contract never had; the claim under test is churn-vs-inevitable,
       // not which mechanism produces it.
+      // 1 run in 11 fails BOTH of these, and it is the suite discriminating rather than a practice
+      // defect — recorded so the next reader does not "fix" it. At 4127191 the failing run answered
+      // "this points at concurrent file mutations breaking cache coherence" and prescribed "Slice
+      // ownership — assign each agent disjoint file ownership". Both are coherent sentences about a
+      // DIFFERENT problem: a prompt cache keys on the token prefix, not on file state, so neither
+      // the diagnosis nor the remedy touches cache churn. The practices caught a wrong answer.
+      //
+      // Worth stating because the shape mimics two defects this repo HAS fixed — a detection
+      // practice tied to one diagnosis, and a remedy practice that enumerates acceptable cures. The
+      // difference is that here both already carry an explicit open set ("any concrete mechanism
+      // counts: …" / three alternatives), and the answer landed outside not because it was a fourth
+      // legitimate cure but because it was about something else. Check that distinction before
+      // touching either line: if a future failure cites a real cache-prefix fix that is not one of
+      // the three, THAT is the enumerated-remedy trap and the wording should open up.
       "reads that as prompt churn rather than as an unavoidable cost — something about what is sent to that agent varies between calls, so it re-creates cache instead of reading it (any concrete mechanism counts: an unstable prefix, retry cycles after its tool errors, a brief rebuilt per call)",
       "recommends a concrete fix — a stable shared prefix, moving the volatile part of the prompt to the end, or a steadier spawn brief for that agent",
       // Control: the other three agents are FINE, and saying so is part of reading the column right.

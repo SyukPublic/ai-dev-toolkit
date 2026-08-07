@@ -61,6 +61,32 @@ ${fx("session-summary.md")}`,
     practices: [
       "writes each entry as a single bullet beginning with a bracketed ISO date, in the shape `- [YYYY-MM-DD] <gist>; \\`path\\` (symbol)`",
       "anchors evidence on a stable locator — a file path plus a symbol or function name — rather than on a line number",
+      // DIAGNOSED 2026-08-07, NOT YET FIXED — read this before reacting to a red on this case.
+      // The full run at 4127191 turned this case red for the first time (2/4), and it is NOT a
+      // regression. Lifetime practice rates across all 8 rows:
+      //
+      //     8/8  single bullet beginning with a bracketed ISO date
+      //     8/8  anchors evidence on a stable locator
+      //     4/8  "at most two sentences, AND phrases it so it is actionable"   <-- soft
+      //     6/8  "under a matching section header, AND does not rewrite/delete" <-- soft
+      //
+      // The case read 7/7 only because 4 practices at threshold 0.7 absorb ONE miss (3/4 = 0.75).
+      // Every earlier "pass" recorded p=3/4 in four of seven rows — always one of these two. This
+      // run both missed, which is a ~12% event given their rates, and the case crossed. So the 7/7
+      // was never robust: a 50% practice sat inside a case that read 100%. Sixth instance in this
+      // repo of the case rate hiding a sub-threshold practice.
+      //
+      // Both are COMPOUND, which is the likely cause rather than the model:
+      //  - The 4/8 joins a length limit to an actionability requirement. The length half is also
+      //    unquotable (the judge needs verbatim evidence and "at most two sentences" is an absence
+      //    — both failures this run carry EMPTY evidence), and it is redundant with the first
+      //    practice, which already pins the shape to a single bullet.
+      //  - The 6/8 joins placement to non-destructiveness, and the second half is again an absence.
+      //
+      // Fix when someone spends the 5 sessions: drop the length clause (the format practice covers
+      // it), and split placement from non-destructiveness. Predict 4/8 → ≥4/5 and 6/8 → ≥4/5; if the
+      // split practices stay soft against a correct answer, the miss is the skill's and that is a
+      // finding. Do not raise the threshold — that would re-hide them.
       "keeps each entry to at most two sentences, and phrases it so it is actionable to someone who was not in this session",
       "places each entry under a section header that matches its category rather than appending to the end of the file, and does not rewrite or delete the entries already in the file",
     ],
