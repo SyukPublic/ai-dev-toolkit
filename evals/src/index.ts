@@ -5,11 +5,12 @@
  */
 
 // Case DSL — what eval files actually use.
-export { describeSkill, describeAgent, describeWorkflow } from "./dsl/describe.js";
+export { describeSkill, describeAgent, describeWorkflow, describeSkillRetrieval } from "./dsl/describe.js";
 export {
   runSkillCases,
   runAgentCases,
   runWorkflowCases,
+  runSkillRetrievalCases,
   activated,
   type SkillCase,
   type AgentCase,
@@ -26,4 +27,7 @@ export { logTrace, logVerdict } from "./logging/log.js";
 export { skillContent, agentContent } from "./artifacts/load.js";
 export { fixtureReader } from "./artifacts/fixture.js";
 export { evalWorkspace } from "./workspace.js";
+// Exported for the two index-shaped suites, which register their content tier only when references
+// are injected on purpose — see runSkillRetrievalCases and config.ts's EVAL_SKILL_REFS note.
+export { EVAL_SKILL_REFS } from "./config.js";
 export * from "./artifacts/paths.js";

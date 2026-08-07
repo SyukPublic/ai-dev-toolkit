@@ -84,9 +84,44 @@ export const IS_BASELINE = EVAL_CONFIG === "baseline";
  * So the (b)-vs-(c) policy choice cannot be settled empirically here and should be decided on the
  * construct grounds instead, which are not empirical at all: the tier's stated purpose ("what
  * SKILL.md itself teaches") argues for injecting SKILL.md only, while wanting to measure retrieval
- * argues for keeping both configurations and reading the PAIR. See .plans for that decision.
+ * argues for keeping both configurations and reading the PAIR.
+ *
+ * DECIDED (2026-08-07) — the default is now OFF, and neither branch of that dilemma was given up.
+ *
+ * The construct side wins on the default: this tier's stated purpose is what SKILL.md teaches, and
+ * production loads only the SKILL.md body. What made the flip look expensive was the belief that it
+ * would silence two suites, and the honest measurement of that turned out worse than the note above
+ * assumed: `fastify-best-practices/SKILL.md` is a 75-line INDEX (24 link lines; `fastify-plugin`,
+ * `fp(`, `TypeBox`, `response schema` and `fast-json-stringify` occur ZERO times in it), and
+ * `next-best-practices/SKILL.md` is 153 lines of which nineteen are `See [references/…] for:`
+ * blocks. Injecting those bodies alone hands the model a table of contents with no tools — so it is
+ * not two cases that go dark, it is all six.
+ *
+ * The retrieval side keeps its measurement instead of losing it: those six cases moved to the new
+ * RETRIEVAL tier (see runSkillRetrievalCases), which runs them against the assembled on-disk
+ * harness so the model must consult the skill and Read the reference itself — the decision
+ * progressive disclosure is actually making in production, and the one thing an injected system
+ * prompt structurally cannot measure. Measured on the case this whole question started from
+ * (`fastify-retrieval-named`, haiku, n=5): 5/5 with all four practices 5/5, every run tracing
+ * `Skill` → `Read references/testing.md` in exactly 4 turns. Against 9/17 pooled for the same case
+ * in the content tier with the full 178k-char payload injected — suggestive that the mega-payload
+ * was hurting the measurement, but NOT a measurement of it: the two arms differ in the prompt's
+ * task line as well as in where the guidance came from. Do not quote it as a rate improvement.
+ *
+ * The PAIR diagnostic survives too, as an opt-in: the two index-shaped suites still ship their
+ * content cases, registered only when `EVAL_SKILL_REFS=1`. Run with the flag on and a
+ * retrieval-vs-content gap localises a failure to retrieval rather than to the guidance, which is
+ * exactly what option (c) wanted; run with the default and neither tier is measuring a table of
+ * contents.
+ *
+ * Consequence to keep in mind: every content-tier row recorded before this flip was taken with
+ * references ON. `skill_refs` is stamped per row (absent on pre-instrumentation rows, reported as
+ * "unknown" and documented as refs-era), and `eval:compare` warns on a mixed set — so the
+ * lifetimes of the 10 remaining content cases in the 3 reference-bearing suites that DO teach in
+ * their SKILL.md (`react-testing-library`, `typescript-expert`, `run-plan`) need rebuilding before
+ * they can be pooled cleanly.
  */
-export const EVAL_SKILL_REFS = (process.env.EVAL_SKILL_REFS ?? "1") !== "0";
+export const EVAL_SKILL_REFS = (process.env.EVAL_SKILL_REFS ?? "0") !== "0";
 
 // --- Scoring / statistics thresholds ---------------------------------------
 export const DEFAULT_THRESHOLD = 0.6; // judge score gate for a quality case
