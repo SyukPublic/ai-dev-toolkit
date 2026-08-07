@@ -20,7 +20,7 @@
     {
       "name": "research-tools",
       "source": "./plugins/research-tools",
-      "description": "Read-only research agent that investigates codebases and the web and returns structured, verifiable reports",
+      "description": "Research and decision-support agents: structured, verifiable investigation of codebases and the web, and pre-decision option exploration with a ranked decision matrix",
       "category": "development",
       "author": { "name": "Roman Halas" }
     },

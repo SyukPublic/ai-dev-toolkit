@@ -1,10 +1,20 @@
 {
   "name": "research-tools",
   "displayName": "Research Tools",
-  "version": "1.0.0",
-  "description": "Read-only research agent that investigates codebases and the web and returns structured, verifiable reports",
+  "version": "1.1.0",
+  "description": "Research and decision-support agents: structured, verifiable investigation of codebases and the web, and pre-decision option exploration with a ranked decision matrix",
   "author": { "name": "Roman Halas" },
   "license": "MIT",
-  "keywords": ["research", "investigation", "read-only", "agent", "websearch"],
+  "keywords": [
+    "research",
+    "investigation",
+    "read-only",
+    "agent",
+    "websearch",
+    "brainstorming",
+    "decision-matrix",
+    "trade-offs",
+    "architecture-decision"
+  ],
   "metadata": { "minClaudeCodeVersion": "2.1.143" }
 }

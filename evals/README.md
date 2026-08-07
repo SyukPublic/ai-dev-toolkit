@@ -230,7 +230,10 @@ needed).
 ## Case shapes (quick reference)
 
 - **Quality case** (skills/agents): `prompt` + `practices[]` (judged) + optional
-  `grounding[]` (cheap gate; a slot may be an array of alternatives) + `threshold`.
+  `grounding[]` (cheap gate; a slot may be an array of alternatives) + `threshold` +
+  optional `disallowedTools[]` (hard-blocked on top of the tier's own guard — an agent that
+  declares `Agent` really does spawn subagents here, and their reads land in the parent
+  trace; see the `brainstormer` suite).
 - **Workflow case**: discriminated union — `dispatch` (expect a subagent), `activation`
   (skill engages / must NOT engage; positive cases may be `indicative`), `trace` (several
   expectations in one session), `contrast` (treatment vs empty-dir control).

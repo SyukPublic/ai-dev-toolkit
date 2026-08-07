@@ -25,7 +25,7 @@ Then install a plugin:
 | Plugin | Description | Depends on |
 | ------ | ----------- | ---------- |
 | [engineering-paved-path](plugins/engineering-paved-path/README.md) | 8 curated stack skills: React, Next.js, Fastify, onion architecture, testing, TypeScript, security | — |
-| [research-tools](plugins/research-tools/README.md) | `researcher` — read-only codebase/web investigation agent with structured reports | — |
+| [research-tools](plugins/research-tools/README.md) | `researcher` — read-only codebase/web investigation with structured reports; `brainstormer` — pre-decision option exploration with a ranked decision matrix | — |
 | [architecture-review](plugins/architecture-review/README.md) | `architecture-reviewer` — read-only layering/dependency-direction auditor | engineering-paved-path |
 | [sdd-engineering](plugins/sdd-engineering/README.md) | Spec-driven development workflow: spec → plan → implement → verify → retro | all three above |
 

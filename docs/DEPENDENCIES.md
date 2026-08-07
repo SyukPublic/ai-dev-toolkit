@@ -13,7 +13,7 @@ semver ranges from the `dependencies` field.
 flowchart TD
   SDD["sdd-engineering<br/>5 agents / 4 skills"]
   EPP["engineering-paved-path<br/>8 stack skills"]
-  RT["research-tools<br/>agent: researcher"]
+  RT["research-tools<br/>agents: researcher, brainstormer"]
   AR["architecture-review<br/>agent: architecture-reviewer"]
 
   SDD -->|"^1.0.0"| EPP
@@ -72,6 +72,8 @@ flowchart LR
   end
 
   subgraph RTP["research-tools"]
+    direction TB
+    BRS["brainstormer"]
     RES["researcher"]
   end
 
@@ -98,6 +100,11 @@ flowchart LR
   SC -.->|"fan-out research"| RES
   IP -.->|"fan-out research"| RES
 
+  BRS -.->|"fan-out research (up to ~5)"| RES
+  BRS -.->|"decision reached"| SC
+  BRS -.->|"Skill tool, if installed"| MMD
+  BRS -.->|"Skill tool, if installed"| INS
+
   SC -->|"preload"| MMD
   SC -->|"preload security"| CORE
   IMPL -->|"preload"| CORE
@@ -108,6 +115,9 @@ flowchart LR
   TW -.->|"Skill tool"| SURF
   ARV -.->|"Skill tool"| SURF
 
+  BRS -.->|"Skill tool, nothing preloaded"| CORE
+  BRS -.->|"Skill tool, nothing preloaded"| SURF
+
   RETRO -.->|"insight"| INS
 
   classDef sdd fill:#dbe7fb,stroke:#3b6fd4,color:#12294f,stroke-width:1.5px;
@@ -115,7 +125,7 @@ flowchart LR
   classDef rt  fill:#fdeacc,stroke:#c98a2b,color:#3d2a08,stroke-width:1.5px;
   classDef ar  fill:#e6dff5,stroke:#7a5fc0,color:#241a44,stroke-width:1.5px;
   class RUNPLAN,SC,IP,IMPL,TW,PV,RETRO,INS,MMD sdd
-  class RES rt
+  class RES,BRS rt
   class ARV ar
   class CORE,SURF epp
 ```
@@ -125,9 +135,19 @@ Reading the graph:
 - **`run-plan` is the orchestration hub** — it drives the implementation waves,
   the test gap pass, and the parallel review stage, and can send the plan back
   to `implementation-planner` for a split when a phase is oversized.
-- **`researcher` serves the early stages** — `spec-creator` and
-  `implementation-planner` fan out fact-finding to it instead of doing long
-  searches in their own context.
+- **`researcher` serves the early stages** — `spec-creator`,
+  `implementation-planner`, and `brainstormer` fan out fact-finding to it instead
+  of doing long searches in their own context.
+- **`brainstormer` sits one step before the pipeline** — it argues a decision out
+  *before* a spec exists, and its outcome is what `spec-creator` takes in as
+  user-approved decisions. Every skill it uses is invoked on demand and **none is
+  declared as a dependency**, which is deliberate: a hard edge from
+  `research-tools` to `sdd-engineering` would close the cycle
+  `research-tools → sdd-engineering → research-tools`. Its dotted edges to
+  `mermaid-diagram` and `engineering-insights` are therefore best-effort — present
+  whenever `sdd-engineering` is installed (which is the common case, since
+  installing it pulls `research-tools` in), and skipped with a note when it is
+  not.
 - **`engineering-paved-path` splits into two tiers**: a core tier
   (`onion-architecture`, `typescript-expert`, `security`) preloaded by agents
   at spawn time via the `skills:` frontmatter, and a surface tier
@@ -147,7 +167,7 @@ Read the current one from the manifest, or from `/api/index.json` on the
 | Plugin | Contents | Depends on |
 | ------ | -------- | ---------- |
 | [engineering-paved-path](../plugins/engineering-paved-path/README.md) | 8 skills: react-best-practices, react-frontend-architecture, react-testing-library, next-best-practices, fastify-best-practices, onion-architecture, security, typescript-expert | — |
-| [research-tools](../plugins/research-tools/README.md) | `researcher` agent (read-only: code, config, git, web) | — |
+| [research-tools](../plugins/research-tools/README.md) | `researcher` agent (read-only: code, config, git, web); `brainstormer` agent (pre-decision option exploration, docs-only write on request) | — |
 | [architecture-review](../plugins/architecture-review/README.md) | `architecture-reviewer` agent (read-only layering/boundary audit) | engineering-paved-path `^1.0.0` |
 | [sdd-engineering](../plugins/sdd-engineering/README.md) | agents: spec-creator, implementation-planner, implementer, test-writer, plan-verifier; skills: run-plan, workflow-retro, engineering-insights, mermaid-diagram | all three `^1.0.0` |
 
