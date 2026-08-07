@@ -10,5 +10,6 @@
     { "name": "engineering-paved-path", "version": "^1.0.0" },
     { "name": "research-tools", "version": "^1.0.0" },
     { "name": "architecture-review", "version": "^1.0.0" }
-  ]
+  ],
+  "metadata": { "minClaudeCodeVersion": "2.1.143" }
 }

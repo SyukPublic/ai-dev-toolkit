@@ -5,5 +5,6 @@
   "description": "Curated engineering skills for React, Next.js, Fastify, onion architecture, testing, TypeScript, and security",
   "author": { "name": "Roman Halas" },
   "license": "MIT",
-  "keywords": ["react", "nextjs", "fastify", "typescript", "testing", "security", "architecture", "best-practices"]
+  "keywords": ["react", "nextjs", "fastify", "typescript", "testing", "security", "architecture", "best-practices"],
+  "metadata": { "minClaudeCodeVersion": "2.1.143" }
 }

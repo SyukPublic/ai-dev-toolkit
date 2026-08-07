@@ -5,5 +5,6 @@
   "description": "Read-only research agent that investigates codebases and the web and returns structured, verifiable reports",
   "author": { "name": "Roman Halas" },
   "license": "MIT",
-  "keywords": ["research", "investigation", "read-only", "agent", "websearch"]
+  "keywords": ["research", "investigation", "read-only", "agent", "websearch"],
+  "metadata": { "minClaudeCodeVersion": "2.1.143" }
 }

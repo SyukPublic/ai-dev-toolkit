@@ -6,6 +6,8 @@ A [Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-market
 
 ## Installation
 
+Requires **Claude Code 2.1.143 or newer** — older releases ignore `displayName` and do not enable a plugin's dependencies along with it. Full version matrix and reasoning: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
 Add the marketplace in Claude Code:
 
 ```
@@ -56,6 +58,7 @@ site/                   # catalog website (GitHub Pages), rebuilt on every push 
 ## Documentation
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how a plugin gets from proposal to pull request
+- [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) — minimum Claude Code version per audience, and why
 - [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) — plugin dependency graph and runtime composition
 - [docs/PLUGIN-GUIDELINES.md](docs/PLUGIN-GUIDELINES.md) — naming, required structure, manifest fields
 - [docs/RELEASES.md](docs/RELEASES.md) — versioning (SemVer), tags, updates, rollback

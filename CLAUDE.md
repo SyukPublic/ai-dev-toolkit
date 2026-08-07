@@ -38,7 +38,7 @@ plugins/<plugin-name>/            the shipped product (one trust unit per plugin
 evals/                            behavioral eval harness (vitest + Claude Agent SDK)
 site/                             Astro catalog site → GitHub Pages
 scripts/                          release automation (prepare-release, tag-releases, rollback)
-docs/                             PLUGIN-GUIDELINES, RELEASES, SECURITY, DEPENDENCIES
+docs/                             PLUGIN-GUIDELINES, RELEASES, SECURITY, DEPENDENCIES, COMPATIBILITY
 ```
 
 ### The four plugins and how they compose
@@ -84,6 +84,14 @@ claude plugin validate . --strict   # what .github/workflows/validate.yml runs
 `--strict` promotes warnings to errors. Without it, a misspelled or misplaced manifest field
 exits 0 and the plugin loads with that field silently ignored — so always run the strict form
 locally too.
+
+**This command needs Claude Code >= 2.1.222 to pass.** Every manifest carries
+`metadata.minClaudeCodeVersion`, and `metadata` was only recognised in 2.1.222 — before that it
+is an unrecognized field, which `--strict` turns into an error (measured on 2.1.220: one warning
+per manifest, exit 1). That is an authoring-side floor only; a pre-2.1.222 CLI ignores the field
+and loads the plugin normally. CI installs the CLI unpinned, so it is always above it.
+`docs/COMPATIBILITY.md` holds the full matrix — user floor 2.1.143, contributor floor 2.1.196 for
+the local-folder check — and the rule that a floor must name the feature that binds it.
 
 Local end-to-end check of a plugin, from the repo root in a Claude Code session:
 
@@ -225,6 +233,11 @@ the first two fail *silently*:
 - `category` is a **marketplace-entry** field, not a manifest field. It belongs in
   `marketplace.json` next to `source`; in `plugin.json` it is ignored at load time and fails
   `--strict`.
+- The **minimum Claude Code version** is declared as `metadata.minClaudeCodeVersion` in every
+  `plugin.json`. There is no `engines`/`requiresClaudeCode` field in the schema, so `metadata` —
+  the manifest's free-form object, never read at load time — is the only place it can live, and
+  nothing validates or enforces it. Keep it equal to the user floor in `docs/COMPATIBILITY.md`
+  (currently `2.1.143`), and never bump it without naming the feature that binds it.
 - Prefer several small plugins over one large one: each is a single trust unit and adds
   always-on context cost (`claude plugin details` projects it).
 

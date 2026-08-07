@@ -20,6 +20,8 @@ The marketplace is curated — not every proposal will land. Maintainers may dec
    ```
 
    Then in a Claude Code session: run `/plugin marketplace add ./` from the repo root, `/plugin install <plugin-name>@ai-dev-toolkit`, and exercise every skill, agent, and command the plugin ships.
+
+   This step needs **Claude Code 2.1.196 or newer**, and `--strict` validation needs **2.1.222 or newer** — see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md). Below 2.1.196 a local-folder marketplace ignores release tags and resolves dependencies from the working tree, so the check silently stops matching what published users get.
 5. **Open a pull request** and fill in the PR template. CI must be green — [validate.yml](.github/workflows/validate.yml) runs the same validator.
 6. **Review.** Code owners (see [CODEOWNERS](CODEOWNERS)) review every PR. Security-sensitive components — hooks, MCP servers, executables — get line-by-line scrutiny (see [docs/SECURITY.md](docs/SECURITY.md)).
 7. **Merge = release.** A merged PR must bump the plugin's version per [docs/RELEASES.md](docs/RELEASES.md) — `node scripts/prepare-release.mjs <plugin> <major|minor|patch>` does the bump and changelog scaffolding for you. Publication to users happens the moment it lands on `main`; the release tag is created automatically.

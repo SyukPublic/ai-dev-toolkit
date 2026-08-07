@@ -44,7 +44,9 @@ The ranges resolve against this repository's release tags
 (`<plugin-name>--vX.Y.Z`, see [RELEASES.md](RELEASES.md)), so each dependency is
 fetched at the highest tagged version satisfying `^1.0.0`. Enabling a plugin
 enables its dependencies too, and disabling one is refused while another enabled
-plugin still needs it. To install a single leaf plugin on its own, name it
+plugin still needs it — that pair of behaviours needs Claude Code 2.1.143 or
+newer, and a local-folder marketplace reads tags only from 2.1.196
+([COMPATIBILITY.md](COMPATIBILITY.md)). To install a single leaf plugin on its own, name it
 directly — `/plugin install research-tools@ai-dev-toolkit`.
 
 ## Runtime composition
