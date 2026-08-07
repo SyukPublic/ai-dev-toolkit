@@ -50,7 +50,17 @@ export const cases: AgentCase[] = [
       // demanding the NUMBER would be stricter than the artifact's own contract. Accept either
       // form; still require attribution to the SPECIFIC rule, not generic prose.
       "attributes EVERY finding to the specific Onion rule it breaks — by rule number (e.g. Onion rule 1, Onion rule 3) OR by the rule's substance (e.g. 'dependencies point inward', 'instantiate only in the composition root') — not generic prose with no rule attribution",
-      "assigns a severity (critical/high/medium/low/info) to each finding",
+      // The level list is the agent's OWN set, verbatim from its severity table: CRITICAL, HIGH,
+      // MEDIUM, "LOW / NOTE". It used to read ".../low/info", and `info` is a level the definition
+      // never defines — so the practice would have passed an answer using a severity the agent
+      // forbids ("use exactly these levels"), which is a case that had stopped matching its
+      // artifact. Note the case runs at threshold 1.0, so a drifted practice here is not absorbed.
+      //
+      // The change is provably NEUTRAL on existing data rather than needing a re-measure: across
+      // every recorded output for this suite there are 83 severity labels and they are all
+      // `[CRITICAL]` (72) or `[HIGH]` (11) — zero `info`, and in fact zero medium/low/note. Both
+      // surviving levels are in the set below, so no recorded row's verdict can change.
+      "assigns a severity from the levels its own calibration table defines — critical, high, medium, or low/note — to each finding",
       "quotes the offending line verbatim as evidence for each finding, not a paraphrase",
       "ends with an explicit PASS/FAIL gate verdict based on whether any critical or high findings exist",
     ],
