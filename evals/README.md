@@ -104,6 +104,15 @@ Every case run — pass or fail — appends a durable record to `results/records
 model output under `results/outputs/`). `results/` is gitignored and append-only; deleting it
 is always safe.
 
+**Never run two `eval:repeat` jobs at the same time.** A repeat series delimits its own records
+by a line offset into that one shared file — `startLine = recordCount()` before the runs, then
+`loadRecords(startLine)` after (`src/repeat.ts`) — so concurrent jobs land inside each other's
+window and each labelled aggregate absorbs the other's rows. Measured: two series launched
+together each reported the *other* case as an extra block, one of them at n=3 because only three
+of its runs had landed before the sibling finished. The per-case counts stay real — aggregation
+groups by case — but `n` and the saved `repeat-<label>.json` no longer mean what the label says.
+Run them one after another.
+
 ### Environment variables
 
 | Var | Default | Meaning |

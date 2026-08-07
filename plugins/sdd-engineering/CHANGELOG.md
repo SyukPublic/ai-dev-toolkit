@@ -47,11 +47,20 @@
   not gated. If measurement later shows assets being dropped silently, item 12 is its own release
   with its own numbers.
 
-- Measured on `claude-sonnet-5`, the tier this suite is calibrated on: the three new cases score
-  **3/3 practices each**, and the three pre-existing finalization-gate cases still pass — the
-  control that matters, since the write boundary and the Bash rule both changed underneath them.
-  Stated so it is not overread: this is **n=1 per case**, which establishes that the behaviour is
-  reachable, not its rate. Nothing here is a stability claim; `pnpm eval:repeat` has not been run.
+- Measured on `claude-sonnet-5`, the tier this suite is calibrated on, at **n=5 per case**
+  (`repeat-staging-1.3.0`): all six cases **5/5**, every practice 100%. The three pre-existing
+  finalization-gate cases holding at 5/5 is the control that matters, since the write boundary and
+  the Bash rule both moved underneath them; the out-of-checklist case still grounds against the
+  repository while doing it (15 ± 8 turns).
+
+  Two of the new cases first measured 4/5 and 2/5, and both were CASE defects, corrected before the
+  re-measure rather than papered over. They shared one root cause worth naming: the practices were
+  phrased in the indicative ("still **stages**", "**copies** rather than moves") while the prompt
+  forbids touching any file, so runs that correctly reported intent — "would stage: `<dest>` ←
+  `<src>`", "pending — not yet performed" — were scored on the hedge instead of the substance. The
+  `cp`-not-`mv` practice was dropped outright: the report format never asks the agent to narrate
+  that rule, and the agent tier strips `Bash`, so this suite structurally cannot observe it.
+  Re-measured after rewording: **5/5 and 5/5**, all practices 100%.
 
 - Backward compatible: additive instruction changes only — no self-check item added, removed or
   reworded, no AC-numbering change, and the spec's section list is unchanged (the asset table
