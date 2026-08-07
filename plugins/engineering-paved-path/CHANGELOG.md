@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.0.4 - 2026-08-07
+
+**No behavioural change.** No skill's guidance or `description` is touched, so nothing this
+release does will change an answer. It exists to deliver two things that could not reach an
+installed plugin without a version bump.
+
+- Removed `skills/fastify-best-practices/tile.json`, a third-party manifest left over from an
+  upstream port. It declared its own unrelated `name` and `version`, nothing in this repository
+  read it, and it was the only such file among the twelve skills — but its `summary` was a
+  byte-for-byte duplicate of `SKILL.md`'s `description`, so the two would silently disagree the
+  first time that description was retargeted. Deleting the duplicate is the fix; the skill's own
+  `description` remains the single source.
+
+- Delivers the **correction to the 1.0.3 entry below**, which has been public on the repository's
+  default branch and in this plugin's GitHub release notes since 2026-08-04 but could not reach a
+  cached plugin payload until now. In short: the two before/after percentages that entry cited for
+  the `security` description rewrite do not hold — each was a single five-run series at a rate near
+  50%, which cannot separate the numbers it separated. The rewrite itself is still right; the
+  measurement described the model it was taken on, not the targeting. The original claim and its
+  retraction are both kept below, in that order, rather than the claim being edited away.
+
 ## 1.0.3 - 2026-08-03
 
 - `security`: rewrote the skill `description` so it stops engaging on infrastructure
