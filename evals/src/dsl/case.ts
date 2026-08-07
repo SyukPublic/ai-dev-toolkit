@@ -9,7 +9,13 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, expect } from "vitest";
-import { DEFAULT_THRESHOLD, EVAL_ACTIVATION_MODEL, SPAWN_TOOLS, WORKFLOW_ALLOWED_TOOLS } from "../config.js";
+import {
+  DEFAULT_THRESHOLD,
+  EVAL_ACTIVATION_MODEL,
+  SPAWN_TOOLS,
+  WORKFLOW_ALLOWED_TOOLS,
+  retrievalToolOptions,
+} from "../config.js";
 import { skillTask, agentTask, workflowTask } from "../tasks.js";
 import { runClaude, type Result, type RunOptions } from "../runtime/run-claude.js";
 import { patternMatch, type ExpectedPattern } from "../scoring/pattern-match.js";
@@ -157,11 +163,10 @@ export const runAgentCases = (agent: string, cases: AgentCase[]) => runQualityCa
  */
 export const runSkillRetrievalCases = (skill: string, cases: SkillCase[]) =>
   runQualityCases(skill, cases, (prompt, _skill, opts) =>
-    workflowTask(prompt, {
-      ...opts,
-      allowedTools: WORKFLOW_ALLOWED_TOOLS.filter((t) => !SPAWN_TOOLS.has(t)),
-      disallowedTools: [...SPAWN_TOOLS],
-    }),
+    // The tool wiring lives in config.ts as `retrievalToolOptions` so it can be unit-tested; both of
+    // its invariants fail silently, and one of them has already cost a measurement in this repo.
+    // Spread AFTER opts: a case's maxTurns is honoured, its tool grant is not negotiable.
+    workflowTask(prompt, { ...opts, ...retrievalToolOptions() }),
   );
 
 export function runWorkflowCases(cases: WorkflowCase[]): void {

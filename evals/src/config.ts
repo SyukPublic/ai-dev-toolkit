@@ -187,6 +187,34 @@ export const WORKFLOW_ALLOWED_TOOLS = ["Read", "Grep", "Glob", "Task", "Agent", 
 // denied Write/Edit/Bash inside its own nested session).
 export const WORKFLOW_DISALLOWED_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"];
 
+/**
+ * The tool wiring the RETRIEVAL tier forces on every case (see runSkillRetrievalCases). Kept here
+ * rather than inline in the runner so it can be pinned by a unit test — `retrieval-tools.test.ts`.
+ *
+ * Two things it has to get right, and both fail SILENTLY:
+ *
+ *  - **Spawn tools must be blocked, not merely un-allowed.** Under bypassPermissions an allow-list
+ *    is inert; this exact bug has already cost a measurement here. Activation cases used to filter
+ *    `Task`/`Agent` out of `allowedTools` only, subagents kept spawning, a dispatched agent's own
+ *    preloaded skills landed in the PARENT trace, and `onion-architecture` read "1/2 engaged"
+ *    against a true 0/14. In this tier the same bug would credit a subagent's `Read` to the session
+ *    under test — a false green on the one thing the tier exists to measure.
+ *  - **`Skill` and `Read` must survive the filter.** They ARE the mechanism. Drop either and every
+ *    retrieval case silently becomes "answer from memory", which is indistinguishable from the model
+ *    ceiling this tier legitimately reports (`next > RSC boundaries` on haiku) — so the harness
+ *    defect would read as a finding.
+ *
+ * Mutating tools are not this function's job: `workflowTask` unions WORKFLOW_DISALLOWED_TOOLS with
+ * whatever a caller adds, so they stay blocked regardless. The test asserts the allow-list never
+ * names one anyway, so the guarantee does not rest on that union alone.
+ */
+export function retrievalToolOptions(): { allowedTools: string[]; disallowedTools: string[] } {
+  return {
+    allowedTools: WORKFLOW_ALLOWED_TOOLS.filter((t) => !SPAWN_TOOLS.has(t)),
+    disallowedTools: [...SPAWN_TOOLS],
+  };
+}
+
 // --- Output verbosity -------------------------------------------------------
 // Set EVAL_QUIET to suppress per-run trace/verdict spam during multi-run aggregation.
 export const QUIET = Boolean(process.env.EVAL_QUIET);
