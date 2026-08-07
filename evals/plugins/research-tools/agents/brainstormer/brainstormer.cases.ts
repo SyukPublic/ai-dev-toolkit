@@ -53,11 +53,17 @@ export const cases: AgentCase[] = [
     // treat as unactionable.
     name: "interview mode: asks before discussing when the prompt names no decision",
     kind: "quality",
-    // Gated on the header of the clarification block the agent is told to emit verbatim. That block
-    // exists BECAUSE of this case: the first two runs both failed the "offers a default per question"
-    // practice while the instruction lived in a prose sentence, so it became a template with the
-    // default rendered per question — the same shape `researcher` already uses for the same reason.
-    grounding: [["Clarification needed", "clarification needed"]],
+    // The clarification block exists BECAUSE of this case: the first two runs both failed the "offers
+    // a default per question" practice while the instruction lived in a prose sentence, so it became a
+    // template with the default rendered per question — the same shape `researcher` already uses for
+    // the same reason. All four practices went 4/4 after that.
+    //
+    // The gate then had to widen. Measured at n=5: one run produced a textbook clarification — three
+    // questions, a default on each, "What I understood:" present — while opening with prose instead of
+    // the literal `## Clarification needed` heading, so the gate failed a CORRECT reply and skipped the
+    // judge. Same class of gate defect as the `routes.ts` slot in the researcher suite. Any one of the
+    // block's three structural markers now satisfies it.
+    grounding: [["Clarification needed", "What I understood", "### Questions"]],
     prompt: "Got a minute to talk about the export stuff in this repo?",
     practices: [
       "returns clarifying questions rather than an options analysis — it does not debate a decision it was never given",
@@ -86,14 +92,42 @@ export const cases: AgentCase[] = [
       "lays out at least two genuinely distinct options rather than variations of one",
       "argues each option's strongest case AND attacks it — failure modes, hidden costs, or what breaks at scale appear for each",
       "presents a comparison table or matrix of the options against named criteria",
-      // Scored 1.0 on its first run, but watch this one across a series rather than trusting n=1:
-      // that same run closed with "**If workspace order counts will remain <100k:** Ship **Option A**
-      // now". A recommendation conditioned on an explicitly unmeasured fact is arguably within the
-      // contract, and it is also the exact shape a real violation would take — the drift to watch for
-      // is the condition quietly dropping away.
+      // THE CONSTRAINT THIS SUITE EXISTS FOR, and the honest number is **12/15 pooled (80 %)** across
+      // three series — 4/4, then 4/5, then 3/5. The arms do not separate, so the intervention between
+      // them is UNPROVEN: the contract now enumerates the hedges ("a softened pick is still a pick",
+      // naming `the pragmatic path`, `if I had to choose`, `ship A as a v1`, `the obvious default`) and
+      // the rate did not move. One failing run even said "Option B emerges as the **pragmatic choice**"
+      // with that exact word banned in the body.
+      //
+      // Both residual failures are one shape — the STAGED or CONDITIONAL recommendation:
+      //   "I'd **start with Option A**, measure order counts, and upgrade to Option B if it hits
+      //    timeout walls"
+      //   "If the largest workspaces exceed a few hundred thousand orders, **Option B emerges as the
+      //    pragmatic choice**"
+      // Arguably inside the contract while the condition stays attached and is named as unmeasured;
+      // arguably the exact shape a real violation takes. Do not settle that by re-wording against haiku
+      // again — the next measurement owed here is on `opus`/`xhigh`, the model the agent declares.
       "does NOT settle on one option as the answer — it ranks and compares while leaving the decision to the caller",
       "cites a concrete file or document from this repository for at least one claim about how the code or the plan works today",
-      "does not come back asking what was meant — the decision named in the prompt is specific enough to discuss",
+      // The most informative practice in this suite, and its FIRST WORDING WAS TOO BROAD — the
+      // correction is worth reading before touching it again.
+      //
+      // At n=5 it scored 2/4, and together with the ADR case (which answered "we have decided X, give
+      // me the ADR" with four clarifying questions) it exposed a real agent defect: interview mode
+      // running on prompts that plainly name the decision. One run fact-checked for 45 TURNS, built its
+      // Verified-facts table, and then stopped to ask. Cause: an earlier fix overshooting — the
+      // clarification block was made a concrete, attractive template while "skip the interview when it
+      // is clear" stayed one prose clause, so the ask side outweighed the proceed side. The proceed side
+      // is now an explicit trigger list ("a stated decision plus an artifact request is never an
+      // interview") settled before the first tool call. ADR went 80% -> 100%, all four practices 5/5.
+      //
+      // But this practice barely moved (50% -> 60%), and the reason is the practice, not the agent: both
+      // surviving failures DELIVERED the full round — `grounded: 1`, so the matrix was there, and the
+      // options/advocate/citation practices were all 5/5 — and then asked ONE sharpening question in the
+      // round's "Questions for you" section ("what is your large-workspace threshold?"). That is the
+      // behaviour the agent's contract explicitly sanctions, so the practice was failing a compliant
+      // reply. It now measures "instead of", which is what the case was ever about.
+      "delivers the discussion rather than returning questions in place of it — a sharpening question asked alongside a delivered round is fine, withholding the analysis to ask first is not",
     ],
     threshold: 0.7,
     maxTurns: 26,
