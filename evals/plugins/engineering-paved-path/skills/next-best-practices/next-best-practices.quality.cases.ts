@@ -87,10 +87,13 @@ ${FILE}`,
     grounding: [["Suspense", "useSearchParams"]],
     practices: [
       "identifies `useSearchParams` in OrderFilters as the cause of the client-side-rendering bailout for the whole route",
-      "fixes it by wrapping OrderFilters in a `<Suspense>` boundary with a fallback, so the bailout is contained to that subtree instead of the page",
+      // Kept byte-identical to the retrieval twin — the pair is only readable as a diagnostic if the
+      // only variable is where the guidance came from. The reasoning for this wording and for the
+      // 0.6 threshold is recorded in next-best-practices.retrieval.cases.ts.
+      "keeps the bailout off the rest of the route — either by containing OrderFilters in a `<Suspense>` boundary with a fallback, or by removing the search-param read from it when the value is already available as a prop",
       "does NOT flag `useRouter` as the cause — it does not force the same bailout, and a client component is where navigation hooks belong",
     ],
-    threshold: 0.7,
+    threshold: 0.6,
     maxTurns: 4,
   },
 ];
