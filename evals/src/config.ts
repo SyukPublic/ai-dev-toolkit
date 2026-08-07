@@ -41,6 +41,107 @@ export const EVAL_ACTIVATION_MODEL =
 export const EVAL_CONFIG = process.env.EVAL_CONFIG ?? "candidate";
 export const IS_BASELINE = EVAL_CONFIG === "baseline";
 
+/**
+ * Whether the content tier injects a skill's `references/*.md` alongside its `SKILL.md`.
+ *
+ * Default ON, which is the long-standing behaviour — but it is not obviously the right one, and this
+ * knob exists to MEASURE that rather than to argue about it. Three facts frame the question:
+ *
+ * - `CLAUDE.md` states this tier measures "what `SKILL.md` itself teaches". With references injected
+ *   that is true for the 7 skills which ship none, and false for the 5 that do.
+ * - Neither setting matches production, and they miss it in opposite directions. Claude Code injects
+ *   only the `SKILL.md` body and the model DECIDES to read a reference with the `Read` tool. Injecting
+ *   everything removes that decision; injecting nothing removes the material. So this tier cannot
+ *   measure retrieval either way, and a red in it does not say whether guidance or retrieval failed.
+ * - The payload is wildly uneven: `fastify-best-practices` injects 177,440 chars of which `SKILL.md`
+ *   is 4,574 (references are 38x the skill), `next-best-practices` 81,484, and every other skill
+ *   <= 22,539. The two bloated suites are also the two weakest measured — `fastify` 5/5, 4/5, 3/5 and
+ *   `next` 5/5, 3/5 — while `onion-architecture` (13,772, no references) returned 23/23 practices at
+ *   5/5. That is correlational only, on three points, which is exactly why it needs an A/B.
+ *
+ * Setting this to "0" is therefore an EXPERIMENT, not a fix. It is a no-op for the 7 reference-free
+ * skills (pinned by a unit test), so flipping it can never silently move those suites. If it is ever
+ * made the default, note that `records.jsonl` pools lifetime rates by CASE NAME and not by injected
+ * payload, so every historical row for the 5 affected suites was measured under the other setting.
+ *
+ * MEASURED, AND THE ANSWER IS "NOT AT THIS BUDGET" — do not re-run this A/B blind.
+ * `fastify-testing-fullrefs` vs `fastify-testing-skillonly`, one case, n=5 each, same sha. Headline
+ * looked decisive: the grounding gate (slot `["inject", "inject("]`) passed 1/5 with references and
+ * 4/5 without, at equal output length. It does not survive pooling. The same full-refs configuration
+ * had passed that gate 6/7 across every earlier series, so full-refs pools to 7/12 (58%) against
+ * skill-only's 4/5 (80%) and the arms do not separate. There is no confound — the commits between the
+ * two shas touch other suites only, and the flag defaults ON so arm 1 was byte-identical to history.
+ * It is within-configuration variance, and n=5 cannot see through it: separating 58% from 80% needs
+ * roughly 50 runs per arm, and pooling every case in the 5 affected suites at n=2 would still cost
+ * ~60 sessions. Outcome rates are the wrong instrument for this question.
+ *
+ * What the A/B DID establish, and it is worth keeping: when this case fails, the model answers with a
+ * different, adjacent, legitimate diagnosis — "`await app.close()` is not in a try-finally block, so
+ * if the assertion throws, cleanup never runs; use `t.after()`" — and never says `inject` at all. The
+ * grounding slot is doing its job: the skill's answer IS `inject()`, so a reply that never reaches it
+ * has not demonstrated the guidance, whatever else it got right.
+ *
+ * So the (b)-vs-(c) policy choice cannot be settled empirically here and should be decided on the
+ * construct grounds instead, which are not empirical at all: the tier's stated purpose ("what
+ * SKILL.md itself teaches") argues for injecting SKILL.md only, while wanting to measure retrieval
+ * argues for keeping both configurations and reading the PAIR.
+ *
+ * DECIDED (2026-08-07) — the default is now OFF, and neither branch of that dilemma was given up.
+ *
+ * The construct side wins on the default: this tier's stated purpose is what SKILL.md teaches, and
+ * production loads only the SKILL.md body. What made the flip look expensive was the belief that it
+ * would silence two suites, and the honest measurement of that turned out worse than the note above
+ * assumed: `fastify-best-practices/SKILL.md` is a 75-line INDEX (24 link lines; `fastify-plugin`,
+ * `fp(`, `TypeBox`, `response schema` and `fast-json-stringify` occur ZERO times in it), and
+ * `next-best-practices/SKILL.md` is 153 lines of which nineteen are `See [references/…] for:`
+ * blocks. Injecting those bodies alone hands the model a table of contents with no tools — so it is
+ * not two cases that go dark, it is all six.
+ *
+ * The retrieval side keeps its measurement instead of losing it: those six cases moved to the new
+ * RETRIEVAL tier (see runSkillRetrievalCases), which runs them against the assembled on-disk
+ * harness so the model must consult the skill and Read the reference itself — the decision
+ * progressive disclosure is actually making in production, and the one thing an injected system
+ * prompt structurally cannot measure. Measured on the case this whole question started from
+ * (`fastify-retrieval-named`, haiku, n=5): 5/5 with all four practices 5/5, every run tracing
+ * `Skill` → `Read references/testing.md` in exactly 4 turns. Against 9/17 pooled for the same case
+ * in the content tier with the full 178k-char payload injected — suggestive that the mega-payload
+ * was hurting the measurement, but NOT a measurement of it: the two arms differ in the prompt's
+ * task line as well as in where the guidance came from. Do not quote it as a rate improvement.
+ *
+ * The PAIR diagnostic survives too, as an opt-in: the two index-shaped suites still ship their
+ * content cases, registered only when `EVAL_SKILL_REFS=1`. Run with the flag on and a
+ * retrieval-vs-content gap localises a failure to retrieval rather than to the guidance, which is
+ * exactly what option (c) wanted; run with the default and neither tier is measuring a table of
+ * contents.
+ *
+ * Consequence to keep in mind: every content-tier row recorded before this flip was taken with
+ * references ON. `skill_refs` is stamped per row (absent on pre-instrumentation rows, reported as
+ * "unknown" and documented as refs-era), and `eval:compare` warns on a mixed set — so the
+ * lifetimes of the 10 remaining content cases in the 3 reference-bearing suites that DO teach in
+ * their SKILL.md (`react-testing-library`, `typescript-expert`, `run-plan`) needed rebuilding
+ * before they could be pooled cleanly.
+ *
+ * REBUILT, and the flip cost those three suites nothing — measured rather than assumed.
+ * `content-skillonly`, haiku, 10 cases × 5, the first rows in this ledger carrying
+ * `skill_refs: false`. **9 of 10 cases green**; the only red is `typescript-expert > TS2589` at 2/5,
+ * a documented deliberate red, better than its 2/15 lifetime. Practice by practice against the
+ * pre-flip pooled rates, **26 of 28 are unchanged within noise**, and both apparent drops survive
+ * inspection as variance rather than lost guidance:
+ *
+ *   - `react-testing-library` MSW over `vi.mock('axios')`, 7/7 → 3/5. NOT the flip: `SKILL.md:221`
+ *     carries the rule AND the rationale the practice asks for ("MSW is the default … because it
+ *     intercepts at the network layer and keeps tests decoupled from the HTTP client"), repeated in
+ *     the Don't table at `SKILL.md:277`. `references/mocking.md` adds only setup code.
+ *   - `typescript-expert` flatten the `WithMeta<T>` intersection, 4/13 → 0/5. At a 31 % true rate
+ *     0/5 is a p≈0.16 event, and it is one of the two stable 0/5 practices already recorded there.
+ *
+ * Which is what the static reading predicted before any session was spent: for these three the
+ * references are supplements, not the substance (`waitFor` 9 body occurrences against 0 in refs;
+ * `run-plan`'s `dirty` 3 against 0). The whole cost of the flip landed on the two index-shaped
+ * suites, and the retrieval tier absorbed it.
+ */
+export const EVAL_SKILL_REFS = (process.env.EVAL_SKILL_REFS ?? "0") !== "0";
+
 // --- Scoring / statistics thresholds ---------------------------------------
 export const DEFAULT_THRESHOLD = 0.6; // judge score gate for a quality case
 export const FLAKY_LOW = 0.2; // pass rate strictly inside (20%, 80%) is "flaky"
@@ -85,6 +186,34 @@ export const WORKFLOW_ALLOWED_TOOLS = ["Read", "Grep", "Glob", "Task", "Agent", 
 // under bypass, and it reaches spawned subagents too (a dispatched implementer reported being
 // denied Write/Edit/Bash inside its own nested session).
 export const WORKFLOW_DISALLOWED_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"];
+
+/**
+ * The tool wiring the RETRIEVAL tier forces on every case (see runSkillRetrievalCases). Kept here
+ * rather than inline in the runner so it can be pinned by a unit test — `retrieval-tools.test.ts`.
+ *
+ * Two things it has to get right, and both fail SILENTLY:
+ *
+ *  - **Spawn tools must be blocked, not merely un-allowed.** Under bypassPermissions an allow-list
+ *    is inert; this exact bug has already cost a measurement here. Activation cases used to filter
+ *    `Task`/`Agent` out of `allowedTools` only, subagents kept spawning, a dispatched agent's own
+ *    preloaded skills landed in the PARENT trace, and `onion-architecture` read "1/2 engaged"
+ *    against a true 0/14. In this tier the same bug would credit a subagent's `Read` to the session
+ *    under test — a false green on the one thing the tier exists to measure.
+ *  - **`Skill` and `Read` must survive the filter.** They ARE the mechanism. Drop either and every
+ *    retrieval case silently becomes "answer from memory", which is indistinguishable from the model
+ *    ceiling this tier legitimately reports (`next > RSC boundaries` on haiku) — so the harness
+ *    defect would read as a finding.
+ *
+ * Mutating tools are not this function's job: `workflowTask` unions WORKFLOW_DISALLOWED_TOOLS with
+ * whatever a caller adds, so they stay blocked regardless. The test asserts the allow-list never
+ * names one anyway, so the guarantee does not rest on that union alone.
+ */
+export function retrievalToolOptions(): { allowedTools: string[]; disallowedTools: string[] } {
+  return {
+    allowedTools: WORKFLOW_ALLOWED_TOOLS.filter((t) => !SPAWN_TOOLS.has(t)),
+    disallowedTools: [...SPAWN_TOOLS],
+  };
+}
 
 // --- Output verbosity -------------------------------------------------------
 // Set EVAL_QUIET to suppress per-run trace/verdict spam during multi-run aggregation.

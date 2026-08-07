@@ -30,6 +30,15 @@ const fx = fixtureReader(import.meta.url);
 const spec = fx("spec-order-export.md");
 const impl = fx("order-export.impl.ts");
 
+// A SECOND, SEPARATE fixture pair for the parity case below, deliberately NOT an eighth AC bolted
+// onto the pair above. Two reasons, both learned the hard way in this repo: an extra checklist item
+// displaces attention in the two cases that already share that prompt (each carries 5–7 practices),
+// and one of those practices asserts "every row of the traceability matrix traces to one of
+// AC-1..AC-7", so widening the spec would silently falsify a passing practice. Its own pair costs a
+// small file and perturbs nothing.
+const paritySpec = fx("spec-export-parity.md");
+const parityImpl = fx("export-parity.impl.ts");
+
 const VERIFY_PROMPT = `Verify the implementation below against its specification.
 
 Both files are provided inline — treat them as already read and answer directly (do not ask for
@@ -84,6 +93,130 @@ export const cases: AgentCase[] = [
       // verdict. What is actually under control is whether LAYERING is graded as though it were
       // a requirement; citing the query line elsewhere is legitimate.
       "does not grade the architecture of the handler — that the route queries the database directly instead of going through a repository is a layering concern, and it may appear only as an explicitly out-of-scope note, never as a requirement row, a verdict, or an entry in the gaps-severity table",
+    ],
+    threshold: 0.7,
+    maxTurns: 30,
+  },
+  {
+    // COVERAGE, not a repair — added 2026-08-07 after an enumeration audit RETRACTED the candidate
+    // it grew out of. Two facts made it worth a case anyway, and both are about coverage rather
+    // than about a defect:
+    //
+    //  1. `AMBIGUOUS-IN-SPEC` has never been exercised as an intended verdict. The pair above is
+    //     built so each verdict has "an unambiguous right answer", but its seven ACs land on
+    //     IMPLEMENTED / DIVERGENT / MISSING only; two practices accept "DIVERGENT or PARTIAL" as
+    //     alternatives. So one of the agent's five verdicts was unmeasured.
+    //  2. The retracted candidate left a thin residue. `plan-verifier.md` says a verdict without
+    //     evidence is "downgraded to `PARTIAL` or `AMBIGUOUS-IN-SPEC`", while AMBIGUOUS-IN-SPEC's
+    //     own row says "This is a real finding, not a cop-out". A requirement that is PRECISE but
+    //     unverifiable here can therefore be routed to the branch the definition forbids.
+    //
+    // The fixture is built so those two are a discriminating PAIR rather than one lead:
+    //     AC-1  IMPLEMENTED        415 before any query runs — a plain control
+    //     AC-2  precise, UNVERIFIABLE here — the legacy exporter it must match byte-for-byte is
+    //           explicitly not part of this codebase, so nothing provided can settle it
+    //     AC-3  self-CONTRADICTORY — one sentence requires every order in the requested range, the
+    //           next forbids cancelled ones, and a cancelled order in range cannot satisfy both.
+    //           The implementation does include every order in range, so there IS code to grade
+    //
+    // AC-2 and AC-3 are the whole point: an agent that labels AC-2 AMBIGUOUS-IN-SPEC has conflated
+    // "the spec is unclear" with "I cannot verify this here", which is exactly the residue.
+    //
+    // NOTE WHAT THE PRACTICES DO NOT DO: none of them demands a specific verdict for AC-2. Both
+    // `PARTIAL` and `MISSING` are defensible there — nothing in the implementation is incomplete,
+    // yet nothing enforces the equivalence either — and a practice naming one would fail a correct
+    // answer, which is this repo's most repeated defect. They constrain the two things the contract
+    // really settles: do not claim confirmed evidence, and do not take the forbidden branch.
+    //
+    // PREDICTION, recorded before the run. If AC-2 stays out of IMPLEMENTED and out of
+    // AMBIGUOUS-IN-SPEC while the reason is stated, the residue is closed as "the contract routes
+    // this correctly in practice" and this case becomes regression protection. If AC-2 is labelled
+    // AMBIGUOUS-IN-SPEC, the residue is real and `plan-verifier.md` owes one sentence separating an
+    // unclear spec from an unverifiable one — an artifact finding, and a release. Measured at the
+    // tier default (haiku) first, which is the floor; a red there is a model-ceiling candidate
+    // before it is a definition defect, so confirm on the declared `opus` before editing the agent.
+    //
+    // RESULT of the first run (`pv-parity-coverage`, haiku, n=5): **the residue is CLOSED.** AC-2
+    // stayed out of IMPLEMENTED 5/5 and out of AMBIGUOUS-IN-SPEC 5/5, so the agent does not take
+    // the branch its own definition forbids. AC-1's control held 5/5. No `plan-verifier.md` change.
+    //
+    // …and that run also exposed a defect in MY OWN fixture, which is why AC-3 above is worded
+    // differently now. v1 read "WHEN an order has been cancelled, THE SYSTEM SHALL omit it from the
+    // export unless the caller asks for the full history", and all five runs graded it **MISSING**
+    // with evidence like "No status filtering in query (lines 34–42), no `includeFullHistory`". They
+    // were RIGHT: the primary clause is plainly unimplemented, so MISSING dominates and the
+    // ambiguity in the exception clause never has to be resolved. The plant was ambiguous *and*
+    // unimplemented — fourth instance in this repo of "is your planted premise a FACT or your
+    // opinion", and this time the premise was mine.
+    //
+    // v2 makes the contradiction DECISIVE: the implementation genuinely includes every order in
+    // range, so there is code to grade and MISSING is off the table. And the practice no longer
+    // demands the AMBIGUOUS-IN-SPEC *label* — applying to AC-3 the same rule I had deliberately
+    // applied to AC-2. A spec that contradicts itself can be honestly reported as DIVERGENT against
+    // the forbidding sentence, so demanding one label would fail a defensible answer. What the
+    // contract really settles is that the contradiction must be SURFACED, not silently resolved.
+    //
+    // Consequence to state plainly: the AMBIGUOUS-IN-SPEC label therefore remains UNEXERCISED as an
+    // intended verdict, and that is deliberate — demanding it would be the enumerated-verdict defect
+    // this suite already avoids for AC-2. PREDICTION for v2: ≥4/5. If it still reads low, the honest
+    // conclusion is that this agent reports contradictions by grading against the stricter sentence
+    // rather than by labelling them, which is a fact worth recording — not a third rewording.
+    //
+    // v2 RESULT: 0/5 again, so the second branch landed and the practice is REMOVED rather than
+    // reworded — see the note at its site below for the mechanism, which is better than the practice
+    // was. AC-3 stays in the fixture: it costs nothing, it keeps the checklist realistic, and it is
+    // now documented as the thing this suite CANNOT measure and why.
+    //
+    // WHAT THIS CASE MEASURES, FINAL: the unverifiable-requirement path, and nothing else. AC-1 as a
+    // plain control, and the three AC-2 practices that settle the residue this case was built for.
+    // On the v2 rows it reads 5/5 with the dead practice gone. Regression protection, not discovery.
+    name: "parity: separates a precise-but-unverifiable requirement from a genuinely ambiguous one",
+    kind: "quality",
+    prompt: `Verify the implementation below against its specification.
+
+Both files are provided inline — treat them as already read and answer directly (do not ask for
+tool access or more files). Cite evidence as \`export-parity.impl.ts:<line>\`, counting lines from 1
+at the first import.
+
+### docs/specs/SPEC-2026-08-01-export-parity.md
+
+${paritySpec}
+
+### server/src/modules/orders/export-parity.impl.ts
+
+\`\`\`ts
+${parityImpl}
+\`\`\``,
+    // Gate on the SUBJECT the answer has to arrive at, not on a verdict: whether AC-3 deserves
+    // AMBIGUOUS-IN-SPEC is the judgement under test, so gating on that literal would put a
+    // judgement in the cheap deterministic tier. The legacy exporter is a fact of the fixture.
+    grounding: [["legacy", "byte-identical", "byte identical"]],
+    practices: [
+      "grades AC-1 as IMPLEMENTED and cites the 415 reply that returns before any query runs",
+      "does NOT report AC-2 as IMPLEMENTED — it does not claim confirmed evidence for a byte-for-byte equivalence with a legacy exporter that is not part of the material provided",
+      "says explicitly WHY AC-2 cannot be confirmed from what it was given — the legacy exporter it must match is outside this codebase — rather than silently settling on a verdict",
+      "does NOT label AC-2 AMBIGUOUS-IN-SPEC: that requirement's wording is precise, and what is missing is the means to verify it, not clarity",
+      // REMOVED after two measured wordings, per the rule recorded above that a third rewording is
+      // not the answer. v1 demanded the `AMBIGUOUS-IN-SPEC` label for an AC that was ambiguous AND
+      // unimplemented: 0/5, all five grading it MISSING, correctly. v2 made the contradiction
+      // decisive and asked only that it be SURFACED: 0/5 again — and the evidence explains why in
+      // the agent's own terms. It splits the AC and grades each half: "Date-range filtering
+      // **implemented** … **Cancellation filtering missing**: no status condition in WHERE clause".
+      //
+      // That is its CONTRACT, not a miss. Phase 1 mandates a checklist of atomic items — "one
+      // testable assertion" each — so a two-sentence AC is legitimately decomposed, and once it is,
+      // there is no contradiction left to surface: the agent never holds both sentences as a single
+      // obligation. Third time on this one case that the agent was right and the plant was wrong.
+      //
+      // The generalisable lesson, and the reason this is worth more than the practice was: **you
+      // cannot plant a spec self-contradiction for an agent whose first phase is instructed to
+      // atomise requirements.** Decomposition dissolves it. If `AMBIGUOUS-IN-SPEC` is ever to be
+      // exercised as an intended verdict, the route is the OTHER half of its definition — wording
+      // that is genuinely unclear *within one atomic assertion* — not two clauses that disagree.
+      //
+      // Removing it leaves four practices at threshold 0.7, so one miss is still absorbed, and the
+      // case is 5/5 on the existing v2 rows by construction (four runs 4/4, one 3/4 = 0.75). No
+      // re-measure owed.
     ],
     threshold: 0.7,
     maxTurns: 30,

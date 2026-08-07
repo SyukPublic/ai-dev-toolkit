@@ -6,7 +6,7 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { MUTATING_TOOLS } from "../config.js";
+import { MUTATING_TOOLS, EVAL_SKILL_REFS } from "../config.js";
 import { skillDir, agentFile } from "./paths.js";
 
 function stripFrontmatter(md: string): string {
@@ -25,14 +25,21 @@ function stripFrontmatter(md: string): string {
  * root .md files are deliberately NOT injected: the content tier measures what SKILL.md itself
  * teaches, and widening the set would need an arbitrary payload/not-payload convention
  * (README.md? AGENTS.md? eval fixtures?) no standard defines.
+ *
+ * `includeReferences` defaults to EVAL_SKILL_REFS (on). Pass it explicitly only from tests — the
+ * knob is documented in config.ts, and the reason it exists is that "SKILL.md + references" and
+ * "SKILL.md" are different measurements for the 5 skills that ship a references/ directory.
  */
-export function skillContent(skillName: string): string {
+export function skillContent(
+  skillName: string,
+  includeReferences: boolean = EVAL_SKILL_REFS,
+): string {
   const dir = skillDir(skillName);
   const skillMd = join(dir, "SKILL.md");
   if (!existsSync(skillMd)) throw new Error(`SKILL.md not found: ${skillMd}`);
   const parts = [readFileSync(skillMd, "utf8")];
   const refs = join(dir, "references");
-  if (existsSync(refs)) {
+  if (includeReferences && existsSync(refs)) {
     for (const f of readdirSync(refs).filter((f) => f.endsWith(".md")).sort()) {
       parts.push(`\n\n## Reference: ${f}\n\n${readFileSync(join(refs, f), "utf8")}`);
     }

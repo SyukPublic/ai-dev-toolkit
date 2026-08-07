@@ -13,7 +13,7 @@ Execution mode: multi-agent
 
 ## Phases
 
-### Phase 1 — contracts and pure formatter (parallel-safe)
+### Phase 1 — contracts and pure formatter (parallel-safe) — **complete**
 
 Disjoint scope: `packages/shared/src/orders/`, `report-core/src/export/`
 
@@ -23,12 +23,13 @@ Disjoint scope: `server/src/modules/orders/`
 
 ## Tasks
 
-- [ ] T1 Add `orderExportQuerySchema` (date range + optional status filter) to `@acme/shared` → AC-1 → test_shared_order_export_schema
-- [ ] T2 Add `formatOrdersCsv(orders, columns)` to `report-core/src/export/` as a pure function → AC-2 → test_report_core_format_orders_csv
-- [ ] T3 Escape embedded commas, quotes, and newlines per RFC 4180 in the formatter → AC-3 → test_report_core_csv_escaping
+- [x] T1 Add `orderExportQuerySchema` (date range + optional status filter) to `@acme/shared` → AC-1 → test_shared_order_export_schema
+- [x] T2 Add `formatOrdersCsv(orders, columns)` to `report-core/src/export/` as a pure function → AC-2 → test_report_core_format_orders_csv
+- [x] T3 Escape embedded commas, quotes, and newlines per RFC 4180 in the formatter → AC-3 → test_report_core_csv_escaping
 - [ ] T4 Add `OrdersRepository.listForExport(workspaceId, range)` returning only export columns → AC-4 → test_orders_repository_list_for_export
 - [ ] T5 Add `OrdersService.exportCsv(workspaceId, query)` composing repository + formatter → AC-5 → test_orders_service_export_csv
 - [ ] T6 Add `GET /orders/export` returning `text/csv`, workspace-scoped, validated by the shared schema → AC-6 → test_orders_route_export
+- [ ] T7 Record the export timestamp on the workspace so the admin UI can show "last exported" → AC-7 → test_orders_service_records_export_timestamp
 
 ## Acceptance criteria
 
@@ -38,6 +39,7 @@ Disjoint scope: `server/src/modules/orders/`
 - AC-4 — the repository query is scoped by `workspaceId` and selects only export columns.
 - AC-5 — the service returns formatted CSV and never reaches for the database directly.
 - AC-6 — the endpoint requires auth, returns `text/csv`, and rejects a malformed query with 400.
+- AC-7 — after a successful export, the workspace's last-export timestamp reflects that run.
 
 ## Traceability matrix
 
@@ -49,6 +51,7 @@ Disjoint scope: `server/src/modules/orders/`
 | T4 | AC-4 | test_orders_repository_list_for_export |
 | T5 | AC-5 | test_orders_service_export_csv |
 | T6 | AC-6 | test_orders_route_export |
+| T7 | AC-7 | test_orders_service_records_export_timestamp |
 
 ## Open questions
 

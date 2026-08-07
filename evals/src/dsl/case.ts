@@ -9,7 +9,13 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, expect } from "vitest";
-import { DEFAULT_THRESHOLD, EVAL_ACTIVATION_MODEL, SPAWN_TOOLS, WORKFLOW_ALLOWED_TOOLS } from "../config.js";
+import {
+  DEFAULT_THRESHOLD,
+  EVAL_ACTIVATION_MODEL,
+  SPAWN_TOOLS,
+  WORKFLOW_ALLOWED_TOOLS,
+  retrievalToolOptions,
+} from "../config.js";
 import { skillTask, agentTask, workflowTask } from "../tasks.js";
 import { runClaude, type Result, type RunOptions } from "../runtime/run-claude.js";
 import { patternMatch, type ExpectedPattern } from "../scoring/pattern-match.js";
@@ -127,6 +133,41 @@ function runQualityCases(artifact: string, cases: QualityCase[], task: Task): vo
 
 export const runSkillCases = (skill: string, cases: SkillCase[]) => runQualityCases(skill, cases, skillTask);
 export const runAgentCases = (agent: string, cases: AgentCase[]) => runQualityCases(agent, cases, agentTask);
+
+/**
+ * The RETRIEVAL tier — the same judged case shape, run against the assembled on-disk harness
+ * instead of an injected system prompt. The model must decide to consult the skill and Read the
+ * supporting file itself, which is exactly the bet progressive disclosure makes in production and
+ * the one thing `skillTask` structurally cannot measure: it pre-loads everything and grants no
+ * tools, so the retrieval decision never happens.
+ *
+ * This exists because two of the twelve skills — `fastify-best-practices` (SKILL.md 75 lines, 24
+ * links) and `next-best-practices` (153 lines, 19 `See [references/…] for:` blocks) — ship a
+ * SKILL.md that is a pure INDEX. `fastify-plugin`, `fp(`, `TypeBox`, `response schema` and
+ * `fast-json-stringify` occur ZERO times in fastify's body. Injecting SKILL.md alone would hand
+ * the model a table of contents with no tools, so their content cases would measure nothing at
+ * all. Here the guidance is reachable the way it is reachable in a real session.
+ *
+ * Notes for case authors:
+ *   - A prompt must NOT forbid tool use. The content tier's "treat the code as already read, do
+ *     not ask for tool access" preamble is exactly wrong here — keep the fixture inline (the
+ *     workspace hosts no Fastify or Next app) but stay silent about tools.
+ *   - Budget for it: the model spends turns on Skill + Read before answering, so `maxTurns: 4`
+ *     (fine for a one-turn content case) starves it. Both skills sit in the activation tier's
+ *     100%-engagement group, which is why they are the two this tier is viable for.
+ *   - Spawn tools are blocked for the same reason activation blocks them: a subagent preloads
+ *     paved-path skills of its own and its reads land in the PARENT trace, so the row would stop
+ *     describing this session.
+ *   - `skill_refs` on the record is meaningless for these rows — nothing is injected. It is still
+ *     stamped from the env, so keep a series' flag consistent or `eval:compare` will warn.
+ */
+export const runSkillRetrievalCases = (skill: string, cases: SkillCase[]) =>
+  runQualityCases(skill, cases, (prompt, _skill, opts) =>
+    // The tool wiring lives in config.ts as `retrievalToolOptions` so it can be unit-tested; both of
+    // its invariants fail silently, and one of them has already cost a measurement in this repo.
+    // Spread AFTER opts: a case's maxTurns is honoured, its tool grant is not negotiable.
+    workflowTask(prompt, { ...opts, ...retrievalToolOptions() }),
+  );
 
 export function runWorkflowCases(cases: WorkflowCase[]): void {
   for (const c of cases) {

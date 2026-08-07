@@ -50,7 +50,12 @@ export default class TrendReporter {
     const walk = (task: TaskLike, file: string) => {
       const state = task.result?.state;
       // Only record tests that actually ran (pass/fail) — skips add noise to the trend.
-      if (state === "pass" || state === "fail") {
+      // LEAF TESTS ONLY: a `describe` block also carries a result state, and recording those put
+      // suite names in the ledger as if they were cases. Harmless for the trend, but it made
+      // eval:compare's died-before-scoring cross-check report every suite as a case that never ran —
+      // measured on the first full run after that feature landed: 181 false positives.
+      const isLeaf = !task.tasks?.length;
+      if (isLeaf && (state === "pass" || state === "fail")) {
         rows.push(
           JSON.stringify({
             run_id: this.runId,

@@ -7,7 +7,6 @@
   },
   "description": "Reusable Claude Code skills, agents, and MCP servers for any project",
   "metadata": {
-    "version": "1.1.0",
     "pluginRoot": "./plugins"
   },
   "plugins": [

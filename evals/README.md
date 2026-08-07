@@ -49,13 +49,29 @@ skills** (unnamespaced) — a documented simplification that measures the artifa
 without a `claude plugin install` step per run. (`skillEngaged` in `src/dsl/case.ts` accepts
 both the bare and the `plugin:skill` form, so cases stay valid either way.)
 
-## Three tiers
+## Four tiers
 
 | Tier | Task | What it measures | How |
 |---|---|---|---|
-| skill | `skillTask` | what SKILL.md itself teaches | content injected as system prompt, **no tools** |
+| skill | `skillTask` | what SKILL.md itself teaches | SKILL.md injected as system prompt, **no tools** |
+| retrieval | `runSkillRetrievalCases` | whether guidance living in `references/` is **reachable** and applied | judged exactly like the skill tier, but run against the on-disk workspace with tools — the model must consult the skill and `Read` the reference file itself |
 | agent | `agentTask` | the agent definition end-to-end | definition injected, frontmatter tools granted (mutating tools stripped), runs from the workspace |
 | workflow | `workflowTask` | the systemic effect: routing, skill activation, subagent dispatch | real on-disk config loaded from the workspace |
+
+The skill tier injects **`SKILL.md` only**; `EVAL_SKILL_REFS=1` adds every `references/*.md`, which is
+already more than production loads. Two skills need the retrieval tier because their SKILL.md is a
+pure index — `fastify-best-practices` (75 lines, 24 link lines; `fp(`, `TypeBox`, `response schema`
+occur zero times in the body) and `next-best-practices` (19 `See [references/…] for:` blocks). Their
+reviews run in the retrieval tier, and their content cases register only under `EVAL_SKILL_REFS=1`.
+Run with the flag on and the retrieval-vs-content **pair** is the localising diagnostic: the content
+arm asks whether the guidance is right with everything already in context, the retrieval arm whether
+it can be reached.
+
+Writing a retrieval case: never forbid tool use in the prompt (the content tier's "treat the code as
+already read, do not ask for tool access" preamble is backwards here), keep the fixture inline, name
+the mechanism ("this project ships a skill … consult it and any reference file it points you to") so
+the case measures retrieval rather than selection — selection is the activation tier's question — and
+raise `maxTurns` to ~10, because `Skill` + `Read` come before the answer.
 
 Two scorers: a deterministic **grounding gate** (substring slots, `patternMatch`) runs first;
 the **LLM judge** (binary PASS/FAIL per practice, verbatim-evidence rule, stronger judge
@@ -97,6 +113,7 @@ is always safe.
 | `EVAL_JUDGE_MODEL` | `claude-sonnet-5` | judge (stronger family to soften self-preference) |
 | `EVAL_MAX_TURNS` | `8` | default turn cap per session |
 | `EVAL_CONFIG` | `candidate` | `baseline` = don't inject the artifact (benchmark) |
+| `EVAL_SKILL_REFS` | `0` | skill tier injects SKILL.md only; `1` also injects every `references/*.md` **and** registers the two index-shaped suites' content cases |
 | `EVAL_BACKEND` | `subscription` | `openrouter` = route inference via OpenRouter |
 | `OPENROUTER_API_KEY` | — | required when `EVAL_BACKEND=openrouter` |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api` | point at `http://localhost:4000` for the LiteLLM proxy |

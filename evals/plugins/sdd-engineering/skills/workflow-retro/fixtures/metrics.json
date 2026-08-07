@@ -51,7 +51,7 @@
       "type": "plan-verifier",
       "spawn_depth": 1,
       "parent": "orchestrator",
-      "usage": { "input": 54000, "output": 29800, "cache_read": 1210000, "cache_creation": 74000 },
+      "usage": { "input": 54000, "output": 58400, "cache_read": 1210000, "cache_creation": 74000 },
       "cache_hit_pct": 89,
       "api_turns": 22,
       "tool_calls_by_tool": { "Read": 41, "Grep": 19 },
@@ -63,7 +63,7 @@
     }
   ],
   "totals": {
-    "orchestrator_plus_agents": { "input": 249700, "output": 122300, "cache_read": 6420000, "cache_creation": 768000 }
+    "orchestrator_plus_agents": { "input": 249700, "output": 150900, "cache_read": 6420000, "cache_creation": 768000 }
   },
   "parallelism": {
     "wall_clock_s": 9420,

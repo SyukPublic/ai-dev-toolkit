@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { classifyFlip } from "./compare.js";
+import { classifyFlip, crossKey } from "./compare.js";
 
 const lt = (passed: number, total: number) => ({ passed, total, rate: total ? passed / total : 0 });
 
@@ -52,5 +52,35 @@ describe("classifyFlip", () => {
 
   it("still reports the regression when the session ran fine and simply answered badly", () => {
     expect(classifyFlip(false, lt(20, 20), false)).toBe("regressed");
+  });
+});
+
+describe("crossKey", () => {
+  // The two ledgers build nodeids differently, and the first full run after the cross-check landed
+  // reported 181 phantom "died before scoring" rows because of it. These are the two real shapes.
+  const HISTORY = "plugins/sdd-engineering/workflow/review-workflow.eval.ts > API-route task reads api-guidelines";
+  const RECORDS =
+    "E:/Sources/x/evals/plugins/sdd-engineering/workflow/review-workflow.eval.ts > workflow:review > API-route task reads api-guidelines";
+
+  it("matches a history row to its records row despite path and describe differences", () => {
+    expect(crossKey(HISTORY)).toBe(crossKey(RECORDS));
+  });
+
+  it("keys on the file basename, so an absolute and a relative path agree", () => {
+    expect(crossKey(RECORDS)).toBe("review-workflow.eval.ts|API-route task reads api-guidelines");
+  });
+
+  it("handles Windows separators, which is how records paths arrive on this machine", () => {
+    expect(crossKey("E:\\x\\evals\\plugins\\a\\b.eval.ts > tier > case name")).toBe("b.eval.ts|case name");
+  });
+
+  it("does not confuse two different cases in the same file", () => {
+    const a = "x/b.eval.ts > tier > first case";
+    const b = "x/b.eval.ts > tier > second case";
+    expect(crossKey(a)).not.toBe(crossKey(b));
+  });
+
+  it("survives a nodeid with no describe level at all", () => {
+    expect(crossKey("x/b.eval.ts > only case")).toBe("b.eval.ts|only case");
   });
 });

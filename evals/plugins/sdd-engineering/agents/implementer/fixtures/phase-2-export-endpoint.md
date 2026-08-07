@@ -10,7 +10,7 @@ Phase 1 (`packages/shared/`, `report-core/`) is complete and owned by another im
 ### Tasks
 
 - [ ] T4 Add `OrdersRepository.listForExport(workspaceId, range)` returning only the export columns → AC-4 → test_orders_repository_list_for_export
-- [ ] T5 Add `OrdersService.exportCsv(workspaceId, query)` composing the repository with the CSV formatter → AC-5 → test_orders_service_export_csv
+- [ ] T5 Add `OrdersService.exportCsv(workspaceId, query)` composing the repository with Phase 1's `formatOrdersCsv` → AC-5 → test_orders_service_export_csv
 - [ ] T6 Add `GET /orders/export` returning `text/csv`, workspace-scoped → AC-6 → test_orders_route_export
 - [ ] T7 Record the export timestamp on the workspace so the admin UI can show "last exported" → AC-7 → test_orders_service_records_export_timestamp
 
@@ -23,5 +23,7 @@ Phase 1 (`packages/shared/`, `report-core/`) is complete and owned by another im
 
 ### Shared scaffold (context pack)
 
-CSV escaping is already solved — reuse `csvEscape` from `server/src/platform/csv.ts:8`.
-Do not write a second escaping helper.
+CSV formatting and RFC 4180 escaping are already solved by Phase 1 — call
+`formatOrdersCsv(orders, columns)` from `report-core/src/export/format-orders-csv.ts`.
+Do not write a second formatter or a second escaping helper, and do not import server-side
+helpers into `report-core` — the allowed direction is `server` → `report-core` → `shared`.

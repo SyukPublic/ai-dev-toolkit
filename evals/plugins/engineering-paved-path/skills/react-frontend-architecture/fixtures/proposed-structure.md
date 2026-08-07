@@ -22,6 +22,9 @@ src/
     invoices/
       index.ts           # re-exports every file below
       InvoicePage.tsx
+      components/
+        table/
+          InvoiceRow.tsx
 ```
 
 ### src/utils.ts (excerpt)
@@ -51,7 +54,19 @@ export function buildInvoiceLineItems(order: Order) {
 ```tsx
 import { OrderTable } from '../../components/OrderTable';
 import { orderHelpers } from '../orders';
-import { formatCurrency } from '../../../utils';
+import { InvoiceRow } from './components/table/InvoiceRow';
+import { formatCurrency } from '../../utils';
+```
+
+### src/features/invoices/components/table/InvoiceRow.tsx (excerpt)
+
+```tsx
+import { formatCurrency } from '../../../../utils';
+import { TAX_LABELS } from '../../../../constants';
+
+export function InvoiceRow({ line }) {
+  return <td>{TAX_LABELS[line.taxClass]}: {formatCurrency(line.taxCents)}</td>;
+}
 ```
 
 ### src/features/orders/OrderPage.tsx (excerpt)

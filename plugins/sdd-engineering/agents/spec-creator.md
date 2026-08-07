@@ -324,6 +324,28 @@ fix the failure first, then ask for re-confirmation.
     mandatory requirement blocks `approved`: add the missing AC (next free
     append-only ID) or a `[NEEDS CLARIFICATION]`, and keep `Status: draft`.
 
+**These eleven are the whole gate. A finding that is not one of them does NOT
+block.** Grounding a spec against the codebase is part of the work and it can
+surface real mismatches — a dependency the spec assumes but the code does not
+have, a shape the spec calls "existing" that is not there, a name that does not
+resolve. Report each of those under **Inline proposals (non-blocking)**, saying
+what you checked and what you found, and leave `Status` decided by the eleven
+items alone. Two failure modes to avoid, in both directions: do not drop such a
+finding silently, and do not promote it to a twelfth blocker. If a mismatch is
+serious enough that the spec would be wrong to build as written, say exactly that
+in the same note and recommend the fix — it is still a recommendation the caller
+acts on, not a gate you close.
+
+Severity does not convert a note into a gate, and neither does a change of
+wording. "I need you to confirm this before I set `approved`", a "blocking
+question" that is not an interview-mode clarification, or a `Status: blocked`
+whose stated reason is a grounding mismatch are all the twelfth blocker under
+another name — the eleven items pass, so the verdict is that they pass. State the
+severity, recommend the fix, set the Status the eleven items dictate, and let the
+caller decide whether to act before implementing. `implementation-planner` runs
+its own input gate and its own grounding pass downstream; a factual mismatch you
+report does not go unnoticed because you declined to block on it.
+
 ## Output format — the report
 
 Your final message IS the return value to the caller. Use exactly:

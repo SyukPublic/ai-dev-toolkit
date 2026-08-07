@@ -152,18 +152,29 @@ pnpm typecheck            # the only eval-side check CI would run
 
 Key env vars: `EVAL_MODEL` (default `claude-haiku-4-5`), `EVAL_JUDGE_MODEL` (default
 `claude-sonnet-5` — a stronger family, to soften self-preference), `EVAL_CONFIG=baseline`
-(skip artifact injection, for benchmarks), `EVAL_BACKEND=openrouter`, `EVAL_MAX_TURNS`.
-Full table in `evals/README.md`.
+(skip artifact injection, for benchmarks), `EVAL_SKILL_REFS=1` (skill tier also injects
+`references/*.md`, and registers the two index-shaped suites' content cases — off by default),
+`EVAL_BACKEND=openrouter`, `EVAL_MAX_TURNS`. Full table in `evals/README.md`.
 
 ## Eval harness architecture
 
-Three tiers, each isolating a different failure mode:
+Four tiers, each isolating a different failure mode:
 
 | Tier | Task | Measures | Mechanism |
 | ---- | ---- | -------- | --------- |
-| skill | `skillTask` | what `SKILL.md` itself teaches | content injected as system prompt, **no tools** |
+| skill | `skillTask` | what `SKILL.md` itself teaches | `SKILL.md` injected as system prompt, **no tools** |
+| retrieval | `runSkillRetrievalCases` | whether guidance in `references/` is **reachable** and applied | judged like the skill tier, but run against the on-disk workspace with tools, so the model must consult the skill and `Read` the reference itself |
 | agent | `agentTask` | the agent definition end-to-end | definition injected, frontmatter tools granted minus mutating ones, runs from the workspace |
 | workflow | `workflowTask` | routing, skill activation, subagent dispatch | real on-disk config loaded from the workspace |
+
+The skill tier injects **`SKILL.md` only** — `EVAL_SKILL_REFS=1` adds every `references/*.md`, which
+is more than production ever loads. That default matters because two skills ship a SKILL.md that is a
+pure index (`fastify-best-practices`: 75 lines, 24 of them links, and `fp(` / `TypeBox` /
+`response schema` occur **zero** times in the body; `next-best-practices`: 19 `See [references/…]
+for:` blocks). Their reviews therefore live in the **retrieval** tier, and their content cases are
+registered only under `EVAL_SKILL_REFS=1` — with the flag on, a retrieval-vs-content gap localises a
+failure to retrieval rather than to the guidance. A retrieval prompt must never forbid tool use, and
+needs a turn cap sized for `Skill` + `Read` (10, not the content tier's 4).
 
 Scoring is two-stage: a deterministic **grounding gate** (`patternMatch`, substring slots)
 runs first; the **LLM judge** (binary PASS/FAIL per practice, verbatim-evidence rule) runs
@@ -171,7 +182,8 @@ only if the gate passes. Cheap failures stay cheap.
 
 A suite is a trio colocated with the plugin that ships the artifact:
 `<name>.eval.ts` (registration) + `<name>.cases.ts` (prompts and practices) + `fixtures/`.
-`pnpm eval:scaffold` puts them in the right place — mirror `plugins/` exactly.
+`pnpm eval:scaffold` puts them in the right place — mirror `plugins/` exactly. A skill that also
+carries retrieval cases adds a fourth file, `<name>.retrieval.cases.ts`.
 
 Two adaptations worth knowing before debugging a surprising result:
 

@@ -26,7 +26,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DIM, GREEN, RED, RESET, YELLOW } from "./ansi.js";
-import { loadRecords, type EvalRecord } from "./records/stats.js";
+import { loadRecords, skillRefsUsed, type EvalRecord } from "./records/stats.js";
 
 const HISTORY = join(dirname(fileURLToPath(import.meta.url)), "..", "results", "history.jsonl");
 
@@ -81,6 +81,8 @@ interface Run {
   dirty: boolean;
   models: Set<string>;
   configs: Set<string>;
+  /** Skill-payload settings behind the run: "refs" / "skill-only" / "unknown". See skillRefsUsed. */
+  skillRefs: Set<string>;
   outcomes: Map<string, boolean>;
   labels: Map<string, string>;
   /** nodeids whose session failed to RUN (not a bad answer). Absent on rows predating the field. */
@@ -97,12 +99,14 @@ function loadRuns(records: EvalRecord[]): Map<string, Run> {
         dirty: Boolean(r.dirty),
         models: new Set<string>(),
         configs: new Set<string>(),
+        skillRefs: new Set<string>(),
         outcomes: new Map<string, boolean>(),
         labels: new Map<string, string>(),
         failedToRun: new Set<string>(),
       } satisfies Run);
     if (r.model) run.models.add(r.model);
     if (r.config) run.configs.add(r.config);
+    for (const s of skillRefsUsed([r])) run.skillRefs.add(s);
     run.outcomes.set(r.nodeid, r.outcome);
     run.labels.set(r.nodeid, r.label);
     // "error", not "error_max_turns": a turn-cap end is the normal, passing ending for a negative
@@ -113,15 +117,56 @@ function loadRuns(records: EvalRecord[]): Map<string, Run> {
   return runs;
 }
 
-/** run_id → the nodeids vitest actually executed, for the died-before-scoring cross-check. */
+/**
+ * The two ledgers cannot be compared on `nodeid` directly — they are built differently:
+ *
+ *   history: `plugins/…/review-workflow.eval.ts > API-route task reads api-guidelines …`
+ *   records: `E:/…/plugins/…/review-workflow.eval.ts > workflow:review > API-route task reads …`
+ *
+ * history's comes from the vitest reporter (relative path, describe level flattened away); records' is
+ * `state.testPath` plus `state.currentTestName`, which is absolute and keeps the describe chain. So the
+ * key is (file BASENAME, LEAF test name), which both can produce. Collision risk: two cases with the
+ * same leaf name in one file under different describes. None exist here, and a collision would only
+ * hide a died-before-scoring row, never invent one.
+ */
+export const crossKey = (nodeid: string): string => {
+  const parts = nodeid.split(" > ");
+  const base = parts[0].split(/[\\/]/).pop() ?? parts[0];
+  return `${base}|${parts[parts.length - 1]}`;
+};
+
+/**
+ * run_id → executed leaf cases, for the died-before-scoring cross-check.
+ *
+ * Restricted to `*.eval.ts`, because only those call `record()`. `history.jsonl` is written by a vitest
+ * reporter and so also holds the pure unit tests under `src/`, which never write a records row by
+ * design — counting those made the first full run report 181 phantom casualties.
+ */
 function loadHistoryNodes(): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
   if (!existsSync(HISTORY)) return out;
   for (const line of readFileSync(HISTORY, "utf8").split("\n").filter(Boolean)) {
     const r = JSON.parse(line) as { run_id: string; nodeid: string };
+    if (!r.nodeid.split(" > ")[0].endsWith(".eval.ts")) continue;
     const set = out.get(r.run_id) ?? new Set<string>();
     set.add(r.nodeid);
     out.set(r.run_id, set);
+  }
+  return out;
+}
+
+/**
+ * The describe labels records has seen per file, e.g. `skill:security`, `agent:test-writer`. Rows for
+ * those appear in history written before the reporter was fixed to emit leaf tests only — a `describe`
+ * block carries a result state too. Derived from the data rather than pattern-matched on `skill:`/
+ * `agent:`/`workflow:`, so it stays correct if the tier prefixes ever change.
+ */
+function suiteLabels(records: EvalRecord[]): Set<string> {
+  const out = new Set<string>();
+  for (const r of records) {
+    const parts = r.nodeid.split(" > ");
+    const base = parts[0].split(/[\\/]/).pop() ?? parts[0];
+    for (const middle of parts.slice(1, -1)) out.add(`${base}|${middle}`);
   }
   return out;
 }
@@ -179,6 +224,18 @@ function main() {
         `${[...b.models].join(",") || "?"}) — this diff measures the model, not the change.${RESET}`,
     );
   }
+  // The same trap as the model switch, one level down and much easier to miss: for the 5 skills that
+  // ship a references/ directory, "SKILL.md" and "SKILL.md + references" are different measurements
+  // (fastify injects 177,440 chars against SKILL.md's 4,574), and nothing else in the output would
+  // reveal that the two runs were not asking the same question. "unknown" is a pre-field row, so a
+  // mixed set including it is only suspect for those 5 suites.
+  const refs = new Set([...a.skillRefs, ...b.skillRefs]);
+  if (refs.size > 1) {
+    console.log(
+      `${YELLOW}warning: mixed skill payloads (${[...refs].join(", ")}) — for the skills that ship ` +
+        `references/, this diff measures what was injected, not the change.${RESET}`,
+    );
+  }
   const configs = new Set([...a.configs, ...b.configs]);
   if (configs.size > 1) {
     console.log(`${YELLOW}warning: mixed configs (${[...configs].join(", ")}) — candidate and baseline are not comparable.${RESET}`);
@@ -230,13 +287,18 @@ function main() {
   // Cases vitest ran but that never reached scoring: the session threw inside task(), so record()
   // never wrote a row. Only detectable because both ledgers now share the run id.
   const history = loadHistoryNodes();
+  const suites = suiteLabels(records);
   for (const [id, run] of [
     [ids[0], a],
     [ids[1], b],
   ] as const) {
     const ran = history.get(id);
     if (!ran) continue;
-    const dead = [...ran].filter((n) => !run.outcomes.has(n));
+    const scored = new Set([...run.outcomes.keys()].map(crossKey));
+    const dead = [...ran].filter((n) => {
+      const key = crossKey(n);
+      return !scored.has(key) && !suites.has(key);
+    });
     if (!dead.length) continue;
     console.log(`\n${YELLOW}died before scoring in ${id}: ${dead.length}${RESET}`);
     console.log(`${DIM}  vitest executed these but no record was written — the session threw inside task().${RESET}`);

@@ -45,6 +45,12 @@ export interface EvalRecord {
   /** Model under test, resolved per run. Absent on rows written before it was recorded. */
   model?: string;
   judge_model?: string;
+  /**
+   * Whether the skill tier injected `references/*.md` alongside `SKILL.md` for this row. Absent on
+   * rows written before it was recorded — see `skillRefsUsed`, which reports those as "unknown"
+   * rather than assuming a value they cannot prove.
+   */
+  skill_refs?: boolean;
   nodeid: string;
   label: string;
   outcome: boolean;
@@ -266,6 +272,29 @@ export function activationFloorBreaches(
     .filter((a) => a.shouldActivate && a.indicative)
     .map((a) => ({ ...a, engaged: life[a.nodeid] ?? a.engaged }))
     .filter((a) => a.engaged.total >= minN && a.engaged.passed === 0);
+}
+
+/**
+ * The distinct skill-payload settings behind a row set: `"refs"`, `"skill-only"`, `"unknown"`.
+ *
+ * The sibling of the `models` field on an aggregate, and it exists for the same reason: MORE THAN ONE
+ * VALUE MEANS THE RATE POOLS INCOMPARABLE RUNS. For the 5 skills that ship a `references/` directory,
+ * "SKILL.md" and "SKILL.md + references" are different measurements — `fastify-best-practices` injects
+ * 177,440 chars against `SKILL.md`'s 4,574 — so a lifetime rate mixing them means nothing, and the
+ * mixing is otherwise invisible because the ledger pools by case name alone.
+ *
+ * "unknown" is a row from before `skill_refs` was recorded. Those were all taken with references
+ * injected, but the row cannot prove it, so this reports rather than assumes — the same call made for
+ * `model` when it was added. Treat a set containing "unknown" alongside a real value as suspect for
+ * the 5 affected suites, and as harmless for the other 7 (where the setting is a no-op, pinned by
+ * src/artifacts/skill-refs.test.ts).
+ */
+export function skillRefsUsed(records: EvalRecord[]): string[] {
+  const seen = new Set<string>();
+  for (const r of records) {
+    seen.add(r.skill_refs === undefined ? "unknown" : r.skill_refs ? "refs" : "skill-only");
+  }
+  return [...seen].sort();
 }
 
 /** Split a record list by its `config` tag. */
