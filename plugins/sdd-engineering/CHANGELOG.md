@@ -47,6 +47,12 @@
   not gated. If measurement later shows assets being dropped silently, item 12 is its own release
   with its own numbers.
 
+- Measured on `claude-sonnet-5`, the tier this suite is calibrated on: the three new cases score
+  **3/3 practices each**, and the three pre-existing finalization-gate cases still pass — the
+  control that matters, since the write boundary and the Bash rule both changed underneath them.
+  Stated so it is not overread: this is **n=1 per case**, which establishes that the behaviour is
+  reachable, not its rate. Nothing here is a stability claim; `pnpm eval:repeat` has not been run.
+
 - Backward compatible: additive instruction changes only — no self-check item added, removed or
   reworded, no AC-numbering change, and the spec's section list is unchanged (the asset table
   lives inside the existing Design analysis section, and is omitted when nothing was provided).
