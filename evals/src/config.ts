@@ -118,8 +118,27 @@ export const IS_BASELINE = EVAL_CONFIG === "baseline";
  * references ON. `skill_refs` is stamped per row (absent on pre-instrumentation rows, reported as
  * "unknown" and documented as refs-era), and `eval:compare` warns on a mixed set — so the
  * lifetimes of the 10 remaining content cases in the 3 reference-bearing suites that DO teach in
- * their SKILL.md (`react-testing-library`, `typescript-expert`, `run-plan`) need rebuilding before
- * they can be pooled cleanly.
+ * their SKILL.md (`react-testing-library`, `typescript-expert`, `run-plan`) needed rebuilding
+ * before they could be pooled cleanly.
+ *
+ * REBUILT, and the flip cost those three suites nothing — measured rather than assumed.
+ * `content-skillonly`, haiku, 10 cases × 5, the first rows in this ledger carrying
+ * `skill_refs: false`. **9 of 10 cases green**; the only red is `typescript-expert > TS2589` at 2/5,
+ * a documented deliberate red, better than its 2/15 lifetime. Practice by practice against the
+ * pre-flip pooled rates, **26 of 28 are unchanged within noise**, and both apparent drops survive
+ * inspection as variance rather than lost guidance:
+ *
+ *   - `react-testing-library` MSW over `vi.mock('axios')`, 7/7 → 3/5. NOT the flip: `SKILL.md:221`
+ *     carries the rule AND the rationale the practice asks for ("MSW is the default … because it
+ *     intercepts at the network layer and keeps tests decoupled from the HTTP client"), repeated in
+ *     the Don't table at `SKILL.md:277`. `references/mocking.md` adds only setup code.
+ *   - `typescript-expert` flatten the `WithMeta<T>` intersection, 4/13 → 0/5. At a 31 % true rate
+ *     0/5 is a p≈0.16 event, and it is one of the two stable 0/5 practices already recorded there.
+ *
+ * Which is what the static reading predicted before any session was spent: for these three the
+ * references are supplements, not the substance (`waitFor` 9 body occurrences against 0 in refs;
+ * `run-plan`'s `dirty` 3 against 0). The whole cost of the flip landed on the two index-shaped
+ * suites, and the retrieval tier absorbed it.
  */
 export const EVAL_SKILL_REFS = (process.env.EVAL_SKILL_REFS ?? "0") !== "0";
 
