@@ -80,6 +80,8 @@ interface Run {
   sha: string;
   dirty: boolean;
   models: Set<string>;
+  /** Reasoning-effort levels behind the run; "default" is a row taken before EVAL_EFFORT existed. */
+  efforts: Set<string>;
   configs: Set<string>;
   /** Skill-payload settings behind the run: "refs" / "skill-only" / "unknown". See skillRefsUsed. */
   skillRefs: Set<string>;
@@ -98,6 +100,7 @@ function loadRuns(records: EvalRecord[]): Map<string, Run> {
         sha: r.git_sha,
         dirty: Boolean(r.dirty),
         models: new Set<string>(),
+        efforts: new Set<string>(),
         configs: new Set<string>(),
         skillRefs: new Set<string>(),
         outcomes: new Map<string, boolean>(),
@@ -105,6 +108,7 @@ function loadRuns(records: EvalRecord[]): Map<string, Run> {
         failedToRun: new Set<string>(),
       } satisfies Run);
     if (r.model) run.models.add(r.model);
+    run.efforts.add(r.effort ?? "default");
     if (r.config) run.configs.add(r.config);
     for (const s of skillRefsUsed([r])) run.skillRefs.add(s);
     run.outcomes.set(r.nodeid, r.outcome);
@@ -222,6 +226,16 @@ function main() {
     console.log(
       `${YELLOW}warning: different models (${[...a.models].join(",") || "?"} vs ` +
         `${[...b.models].join(",") || "?"}) — this diff measures the model, not the change.${RESET}`,
+    );
+  }
+  // Reasoning effort is the same trap wearing different clothes, and it is worse in one way: nothing
+  // else in the output hints at it, and the two series can share a model AND a sha while measuring
+  // different amounts of thinking. "default" is a row taken before EVAL_EFFORT existed.
+  const sameEffort = [...a.efforts].sort().join(",") === [...b.efforts].sort().join(",");
+  if (!sameEffort) {
+    console.log(
+      `${YELLOW}warning: different reasoning effort (${[...a.efforts].sort().join(",")} vs ` +
+        `${[...b.efforts].sort().join(",")}) — this diff measures the effort level, not the change.${RESET}`,
     );
   }
   // The same trap as the model switch, one level down and much easier to miss: for the 5 skills that

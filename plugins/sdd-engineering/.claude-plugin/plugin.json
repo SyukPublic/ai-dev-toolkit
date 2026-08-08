@@ -1,7 +1,7 @@
 {
   "name": "sdd-engineering",
   "displayName": "SDD Engineering",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Spec-driven development workflow: spec, plan, implement, verify - with run orchestration and retro tooling",
   "author": { "name": "Roman Halas" },
   "license": "MIT",
@@ -10,5 +10,6 @@
     { "name": "engineering-paved-path", "version": "^1.0.0" },
     { "name": "research-tools", "version": "^1.0.0" },
     { "name": "architecture-review", "version": "^1.0.0" }
-  ]
+  ],
+  "metadata": { "minClaudeCodeVersion": "2.1.143" }
 }

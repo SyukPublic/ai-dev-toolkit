@@ -6,5 +6,6 @@
   "author": { "name": "Roman Halas" },
   "license": "MIT",
   "keywords": ["architecture", "review", "audit", "onion", "read-only"],
-  "dependencies": [{ "name": "engineering-paved-path", "version": "^1.0.0" }]
+  "dependencies": [{ "name": "engineering-paved-path", "version": "^1.0.0" }],
+  "metadata": { "minClaudeCodeVersion": "2.1.143" }
 }

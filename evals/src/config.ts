@@ -11,6 +11,30 @@ export const EVAL_JUDGE_MODEL = process.env.EVAL_JUDGE_MODEL ?? "claude-sonnet-5
 export const MAX_TURNS = Number(process.env.EVAL_MAX_TURNS ?? "8");
 
 /**
+ * Reasoning effort for the model under test. Unset = whatever the SDK defaults to for that model,
+ * which is what every row recorded before this knob existed was taken at.
+ *
+ * It exists because an AGENT DEFINITION CAN DECLARE ONE (`effort: xhigh` on four of this repo's
+ * agents) and the agent tier cannot honour it: `agentTask` injects the definition as a system
+ * prompt, so the frontmatter is prose to the session, not configuration. Without this the tier
+ * structurally cannot measure the agent as it actually runs in production — a real gap for
+ * `brainstormer`, whose two open reds are both judgement-shaped and were only ever measured on
+ * haiku at default effort.
+ *
+ * Available levels depend on the model and the SDK silently DOWNGRADES an unsupported one, so a
+ * green run is not proof the level applied. `effort` is stamped on every record next to `model`
+ * for the same reason `model` is: `records.jsonl` pools by case name, and a mixed-effort series
+ * would otherwise pool silently.
+ */
+export const EVAL_EFFORT = process.env.EVAL_EFFORT as
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh"
+  | "max"
+  | undefined;
+
+/**
  * Model for ACTIVATION cases only, defaulting to a stronger one than the tiers under judgement.
  *
  * Activation asks "does this skill get selected", which is a judgement task, and the cheap default

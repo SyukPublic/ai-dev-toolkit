@@ -4,7 +4,7 @@
  */
 
 import { query, type Options } from "@anthropic-ai/claude-agent-sdk";
-import { EVAL_MODEL, MAX_TURNS, SPAWN_TOOLS } from "../config.js";
+import { EVAL_EFFORT, EVAL_MODEL, MAX_TURNS, SPAWN_TOOLS } from "../config.js";
 import { REPO_ROOT } from "../artifacts/paths.js";
 import { subscriptionEnv } from "./env.js";
 
@@ -34,6 +34,12 @@ export interface Result {
    * without this a row cannot be attributed after the fact and mixed series silently pool.
    */
   model: string;
+  /**
+   * The reasoning effort this run ACTUALLY requested — `opts.effort ?? EVAL_EFFORT`, or undefined
+   * for the SDK default. Recorded for the same reason `model` is, and with one extra caveat: the
+   * SDK silently downgrades a level the model does not support, so this is what was ASKED for.
+   */
+  effort?: string;
   metrics: Metrics;
 }
 
@@ -43,6 +49,8 @@ export interface RunOptions {
   maxTurns?: number;
   cwd?: string;
   model?: string;
+  /** Reasoning effort override; falls back to EVAL_EFFORT, then to the SDK default for the model. */
+  effort?: "low" | "medium" | "high" | "xhigh" | "max";
   /** ["project"] loads on-disk CLAUDE.md + skills/agents; default [] keeps the run isolated. */
   settingSources?: Array<"user" | "project" | "local">;
   /** Tools hard-blocked even under bypassPermissions (mutation guard for the workflow tier). */
@@ -107,8 +115,13 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
   }
 
   const model = opts.model ?? EVAL_MODEL;
+  const effort = opts.effort ?? EVAL_EFFORT;
   const options: Options = {
     model,
+    // Omitted entirely when unset, so every pre-existing row's conditions stay reproducible —
+    // passing `effort: undefined` explicitly would be the same thing, but this keeps the intent
+    // legible next to the SDK's "default depends on the model" semantics.
+    ...(effort ? { effort } : {}),
     maxTurns: opts.maxTurns ?? MAX_TURNS,
     permissionMode: "bypassPermissions", // safe: evals only read/plan and tools are allow-listed
     systemPrompt,
@@ -225,6 +238,7 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
     isError,
     errorSubtype,
     model,
+    effort,
     metrics: { durationMs, inputTokens, outputTokens, toolCallCount },
   };
 }

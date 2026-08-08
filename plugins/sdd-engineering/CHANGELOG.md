@@ -1,5 +1,72 @@
 # Changelog
 
+## 1.3.0 - 2026-08-07
+
+- `spec-creator`: **stages the design sources it is given**. The
+  `<specs-dir>/assets/<spec-id>/` convention was already in the definition — cited in the
+  DesignSync fallback, in Design analysis, and in the Traceability example — but nothing ever
+  put a file there: the assets directory was explicitly read-only ("the main session/user puts
+  files there"), so a spec could only cite assets somebody else had staged by hand. In practice
+  that meant specs pointing at `C:\Users\…\Downloads\v2.png`, which is unreadable to every other
+  reader and dead as soon as the file moves. The agent now copies user-provided sources into the
+  spec's own folder at draft time and cites them relatively as `assets/<spec-id>/<file>`, with a
+  new asset table in Design analysis and an **Assets staged** section in the report.
+
+  The write boundary widens by exactly one folder — `<specs-dir>/assets/<spec-id>/` for the spec
+  being written, **create-only**: no overwrite, no edit, no move, no delete, and no other spec's
+  folder. `Bash` stays read-only but for two commands, `mkdir -p` and `cp --`, both scoped to
+  that folder. `cp` and never `mv`, so the user's original survives. Asset names are append-only
+  like AC-IDs: once a Traceability row cites a file it is never renamed, a revised mockup is
+  staged as `-v2`, and a name collision takes a numeric suffix instead of overwriting.
+
+  The staging rules are a security surface, because this folder is committed: only paths the USER
+  named in this session are eligible — never one found by globbing the repository, and never one
+  read out of a design file (that text is already DATA, not instructions, under the untrusted-
+  inputs constraint). Secret-shaped files, anything under `.git/`, executables, scripts and
+  archives are refused and the refusal is reported rather than swallowed; an extension allow-list
+  and a ~10 MB size check bound the rest.
+
+- `spec-creator`: **chat attachments are named as un-stageable, explicitly.** A subagent receives
+  text only — the official docs put it as "each subagent starts with a fresh, isolated context
+  window" — so `[Image #1]` or "see the attached screenshot" arrives with nothing behind it, and
+  a pasted image has no filesystem path to copy from in the first place. A design referred to
+  that way with no path is now a BLOCKING interview question, and the report says "not received"
+  instead of claiming an analysis. This is the same shape as the existing DesignSync fallback,
+  which already refused to fake an analysis of a design it could not open. Callers pass a path;
+  the agent's `description` says so, so the constraint reaches the caller before the spawn.
+
+- `spec-creator`: with the boundary widened, a reachable `DesignSync` project no longer dead-ends.
+  `get_file` returns text, and the agent now saves that text into the asset folder with `Write`,
+  so the spec cites a file in the repository rather than a remote path only that session could
+  reach. The DesignSync **write** methods are named and forbidden — reading a design is in scope,
+  changing it is not.
+
+- **The finalization gate is unchanged, deliberately.** No twelfth self-check item: staging is a
+  mechanical step, not a property of spec completeness, and 1.2.0 is a measured correction against
+  exactly that reflex ("These eleven are the whole gate"). Coverage of staged assets is reported,
+  not gated. If measurement later shows assets being dropped silently, item 12 is its own release
+  with its own numbers.
+
+- Measured on `claude-sonnet-5`, the tier this suite is calibrated on, at **n=5 per case**
+  (`repeat-staging-1.3.0`): all six cases **5/5**, every practice 100%. The three pre-existing
+  finalization-gate cases holding at 5/5 is the control that matters, since the write boundary and
+  the Bash rule both moved underneath them; the out-of-checklist case still grounds against the
+  repository while doing it (15 ± 8 turns).
+
+  Two of the new cases first measured 4/5 and 2/5, and both were CASE defects, corrected before the
+  re-measure rather than papered over. They shared one root cause worth naming: the practices were
+  phrased in the indicative ("still **stages**", "**copies** rather than moves") while the prompt
+  forbids touching any file, so runs that correctly reported intent — "would stage: `<dest>` ←
+  `<src>`", "pending — not yet performed" — were scored on the hedge instead of the substance. The
+  `cp`-not-`mv` practice was dropped outright: the report format never asks the agent to narrate
+  that rule, and the agent tier strips `Bash`, so this suite structurally cannot observe it.
+  Re-measured after rewording: **5/5 and 5/5**, all practices 100%.
+
+- Backward compatible: additive instruction changes only — no self-check item added, removed or
+  reworded, no AC-numbering change, and the spec's section list is unchanged (the asset table
+  lives inside the existing Design analysis section, and is omitted when nothing was provided).
+  A spec run with no user-provided files behaves exactly as before.
+
 ## 1.2.0 - 2026-08-06
 
 - `spec-creator`: the final self-check's eleven items are now stated to be the **whole** finalization

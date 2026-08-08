@@ -34,6 +34,8 @@ With this plugin and its three dependencies installed:
 
    `spec-creator` writes `docs/specs/SPEC-<date>-csv-export.md` and stops while open questions remain — a final spec has zero.
 
+   Design sources go in **by path**: `spec-creator` copies every file you name into the spec's own folder, `docs/specs/assets/<spec-id>/`, and cites it from there, so the spec stays readable after the original moves. It cannot see images pasted or dropped into the chat — a subagent receives text only — so give it a path for anything that must land in the repository, and verbalize the rest.
+
 2. **Plan.** Point the planner at the approved spec and state the execution mode up front:
 
    > Plan the feature from docs/specs/SPEC-2026-07-17-csv-export.md, multi-agent execution.
@@ -64,7 +66,7 @@ Steps 1–2 are also useful standalone: a spec for alignment, a plan for a human
 
 | Agent | Role |
 |---|---|
-| `spec-creator` | Produces the feature spec from a request; preloads `sdd-engineering:mermaid-diagram` for diagrams |
+| `spec-creator` | Produces the feature spec from a request; stages user-provided design sources into `<specs-dir>/assets/<spec-id>/`; preloads `sdd-engineering:mermaid-diagram` for diagrams |
 | `implementation-planner` | Produces the phased Development Plan + traceability matrix from a spec |
 | `implementer` | Implements one plan phase (code + targeted tests) inside its disjoint scope |
 | `test-writer` | Post-implementation gap pass: writes only the missing/thin tests from the traceability matrix |

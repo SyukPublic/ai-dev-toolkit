@@ -6,6 +6,8 @@ A [Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-market
 
 ## Installation
 
+Requires **Claude Code 2.1.143 or newer** — older releases ignore `displayName` and do not enable a plugin's dependencies along with it. Full version matrix and reasoning: [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+
 Add the marketplace in Claude Code:
 
 ```
@@ -23,7 +25,7 @@ Then install a plugin:
 | Plugin | Description | Depends on |
 | ------ | ----------- | ---------- |
 | [engineering-paved-path](plugins/engineering-paved-path/README.md) | 8 curated stack skills: React, Next.js, Fastify, onion architecture, testing, TypeScript, security | — |
-| [research-tools](plugins/research-tools/README.md) | `researcher` — read-only codebase/web investigation agent with structured reports | — |
+| [research-tools](plugins/research-tools/README.md) | `researcher` — read-only codebase/web investigation with structured reports; `brainstormer` — pre-decision option exploration with a ranked decision matrix | — |
 | [architecture-review](plugins/architecture-review/README.md) | `architecture-reviewer` — read-only layering/dependency-direction auditor | engineering-paved-path |
 | [sdd-engineering](plugins/sdd-engineering/README.md) | Spec-driven development workflow: spec → plan → implement → verify → retro | all three above |
 
@@ -56,6 +58,7 @@ site/                   # catalog website (GitHub Pages), rebuilt on every push 
 ## Documentation
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how a plugin gets from proposal to pull request
+- [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) — minimum Claude Code version per audience, and why
 - [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) — plugin dependency graph and runtime composition
 - [docs/PLUGIN-GUIDELINES.md](docs/PLUGIN-GUIDELINES.md) — naming, required structure, manifest fields
 - [docs/RELEASES.md](docs/RELEASES.md) — versioning (SemVer), tags, updates, rollback

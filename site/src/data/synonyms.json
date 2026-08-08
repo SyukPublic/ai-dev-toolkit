@@ -9,5 +9,7 @@
   ["fix", "bug", "debug", "debugging", "error"],
   ["ai", "llm", "model", "prompt"],
   ["mcp", "server", "integration", "tool"],
-  ["refactor", "refactoring", "cleanup", "simplify"]
+  ["refactor", "refactoring", "cleanup", "simplify"],
+  ["brainstorm", "brainstorming", "discuss", "discussion", "options", "alternatives"],
+  ["decision", "decide", "trade-off", "tradeoff", "adr", "decision-matrix"]
 ]

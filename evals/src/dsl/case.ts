@@ -40,6 +40,18 @@ export interface QualityCase {
   /** Judge score gate (default 0.6). */
   threshold?: number;
   maxTurns?: number;
+  /**
+   * Extra tools to hard-block for this case, on top of the tier's own guard (agentTask unions this
+   * with MUTATING_TOOLS, so a case can only ADD restrictions).
+   *
+   * The reason it exists: an agent that declares `Agent` (`brainstormer`, `implementation-planner`,
+   * `spec-creator`) really does spawn subagents in the agent tier — `agentTask` grants the declared
+   * frontmatter tools minus the mutating ones, and the assembled workspace has every plugin agent on
+   * disk, so the spawn resolves. That costs nested sessions with `WebSearch` (a near-miss researcher
+   * run once burned 199s) and, worse, muddies the row: a subagent's reads and preloaded skills land
+   * in the PARENT trace. Blocking is what works — under bypassPermissions an allow-list is inert.
+   */
+  disallowedTools?: string[];
 }
 export type SkillCase = QualityCase;
 export type AgentCase = QualityCase;
@@ -102,7 +114,10 @@ function runQualityCases(artifact: string, cases: QualityCase[], task: Task): vo
   for (const c of cases) {
     test(c.name, async () => {
       const threshold = c.threshold ?? DEFAULT_THRESHOLD;
-      const result = await task(c.prompt, artifact, { maxTurns: c.maxTurns });
+      const result = await task(c.prompt, artifact, {
+        maxTurns: c.maxTurns,
+        disallowedTools: c.disallowedTools,
+      });
       logTrace(c.name, result);
 
       // measure → record → assert. Everything measurable runs in the try; record() fires in the

@@ -104,6 +104,15 @@ Every case run — pass or fail — appends a durable record to `results/records
 model output under `results/outputs/`). `results/` is gitignored and append-only; deleting it
 is always safe.
 
+**Never run two `eval:repeat` jobs at the same time.** A repeat series delimits its own records
+by a line offset into that one shared file — `startLine = recordCount()` before the runs, then
+`loadRecords(startLine)` after (`src/repeat.ts`) — so concurrent jobs land inside each other's
+window and each labelled aggregate absorbs the other's rows. Measured: two series launched
+together each reported the *other* case as an extra block, one of them at n=3 because only three
+of its runs had landed before the sibling finished. The per-case counts stay real — aggregation
+groups by case — but `n` and the saved `repeat-<label>.json` no longer mean what the label says.
+Run them one after another.
+
 ### Environment variables
 
 | Var | Default | Meaning |
@@ -114,6 +123,7 @@ is always safe.
 | `EVAL_MAX_TURNS` | `8` | default turn cap per session |
 | `EVAL_CONFIG` | `candidate` | `baseline` = don't inject the artifact (benchmark) |
 | `EVAL_SKILL_REFS` | `0` | skill tier injects SKILL.md only; `1` also injects every `references/*.md` **and** registers the two index-shaped suites' content cases |
+| `EVAL_EFFORT` | unset | reasoning effort for the model under test (`low`…`max`). Unset = the SDK default for that model, which is what every row predating the knob was taken at. It exists because an agent definition can DECLARE one (`effort: xhigh` on four agents here) and the agent tier cannot honour it — `agentTask` injects the definition as a system prompt, so frontmatter is prose to the session, not configuration. Pair it with `EVAL_MODEL` to measure an agent as it actually runs: `EVAL_MODEL=claude-opus-5 EVAL_EFFORT=xhigh`. Stamped on every row and diffed by `eval:compare`, which warns on a mixed pair — the SDK **silently downgrades** an unsupported level, so a green run is not proof the level applied |
 | `EVAL_BACKEND` | `subscription` | `openrouter` = route inference via OpenRouter |
 | `OPENROUTER_API_KEY` | — | required when `EVAL_BACKEND=openrouter` |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api` | point at `http://localhost:4000` for the LiteLLM proxy |
@@ -221,7 +231,10 @@ needed).
 ## Case shapes (quick reference)
 
 - **Quality case** (skills/agents): `prompt` + `practices[]` (judged) + optional
-  `grounding[]` (cheap gate; a slot may be an array of alternatives) + `threshold`.
+  `grounding[]` (cheap gate; a slot may be an array of alternatives) + `threshold` +
+  optional `disallowedTools[]` (hard-blocked on top of the tier's own guard — an agent that
+  declares `Agent` really does spawn subagents here, and their reads land in the parent
+  trace; see the `brainstormer` suite).
 - **Workflow case**: discriminated union — `dispatch` (expect a subagent), `activation`
   (skill engages / must NOT engage; positive cases may be `indicative`), `trace` (several
   expectations in one session), `contrast` (treatment vs empty-dir control).
