@@ -43,8 +43,9 @@ docs/                             PLUGIN-GUIDELINES, RELEASES, SECURITY, DEPENDE
 
 ### The four plugins and how they compose
 
-`engineering-paved-path` (8 stack skills) and `research-tools` (`researcher` agent) are
-leaves. `architecture-review` (`architecture-reviewer` agent) depends on the paved path.
+`engineering-paved-path` (8 stack skills) and `research-tools` (`researcher` +
+`brainstormer` agents) are leaves. `architecture-review` (`architecture-reviewer` agent)
+depends on the paved path.
 `sdd-engineering` depends on all three and is the workflow layer: agents `spec-creator` →
 `implementation-planner` → `implementer` / `test-writer` / `plan-verifier`, orchestrated by
 the `run-plan` skill, with `workflow-retro`, `engineering-insights`, and `mermaid-diagram`
@@ -162,7 +163,16 @@ Key env vars: `EVAL_MODEL` (default `claude-haiku-4-5`), `EVAL_JUDGE_MODEL` (def
 `claude-sonnet-5` — a stronger family, to soften self-preference), `EVAL_CONFIG=baseline`
 (skip artifact injection, for benchmarks), `EVAL_SKILL_REFS=1` (skill tier also injects
 `references/*.md`, and registers the two index-shaped suites' content cases — off by default),
-`EVAL_BACKEND=openrouter`, `EVAL_MAX_TURNS`. Full table in `evals/README.md`.
+`EVAL_EFFORT` (reasoning effort, unset = the SDK default), `EVAL_BACKEND=openrouter`,
+`EVAL_MAX_TURNS`. Full table in `evals/README.md`.
+
+**Four agents declare `model:` and `effort:`, and the agent tier honours neither on its own** —
+`agentTask` injects the definition as a system prompt, so that frontmatter is prose to the
+session. Measure a red on the model the agent actually declares before believing it:
+`EVAL_MODEL=claude-opus-5 EVAL_EFFORT=xhigh`. Two `brainstormer` practices sat at 0/5 and 12/15
+across five haiku series and three rule revisions, and both went ~perfect at the declared model
+with no further wording change. Budget for it — that suite costs ~3x the tokens and 3-6x the wall
+clock of a haiku run.
 
 ## Eval harness architecture
 
