@@ -45,6 +45,8 @@ export interface EvalRecord {
   /** Model under test, resolved per run. Absent on rows written before it was recorded. */
   model?: string;
   judge_model?: string;
+  /** Reasoning effort requested; absent on rows taken before the knob existed (= SDK default). */
+  effort?: string;
   /**
    * Whether the skill tier injected `references/*.md` alongside `SKILL.md` for this row. Absent on
    * rows written before it was recorded — see `skillRefsUsed`, which reports those as "unknown"

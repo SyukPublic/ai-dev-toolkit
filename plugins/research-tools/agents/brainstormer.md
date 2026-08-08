@@ -258,7 +258,10 @@ balanced pros-and-cons list for low-stakes questions.
 Rank the options; do NOT pick a single winner — the choice is the caller's.
 
 ### 🔬 Hypotheses to verify
-- **Hypothesis — to verify:** <engineering judgement not yet grounded> — how to test it.
+Number them, so an inline `(est. — see H2)` elsewhere in the round actually resolves.
+- **H1 — <engineering judgement not yet grounded>.** <why it matters to the decision>
+  **Check:** <the query, load test, or metric that would settle it>
+- **H2 — …** **Check:** …
 
 ### ❓ Questions for you / next steps
 - <what would sharpen the decision or unblock the next round>

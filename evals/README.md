@@ -123,6 +123,7 @@ Run them one after another.
 | `EVAL_MAX_TURNS` | `8` | default turn cap per session |
 | `EVAL_CONFIG` | `candidate` | `baseline` = don't inject the artifact (benchmark) |
 | `EVAL_SKILL_REFS` | `0` | skill tier injects SKILL.md only; `1` also injects every `references/*.md` **and** registers the two index-shaped suites' content cases |
+| `EVAL_EFFORT` | unset | reasoning effort for the model under test (`low`…`max`). Unset = the SDK default for that model, which is what every row predating the knob was taken at. It exists because an agent definition can DECLARE one (`effort: xhigh` on four agents here) and the agent tier cannot honour it — `agentTask` injects the definition as a system prompt, so frontmatter is prose to the session, not configuration. Pair it with `EVAL_MODEL` to measure an agent as it actually runs: `EVAL_MODEL=claude-opus-5 EVAL_EFFORT=xhigh`. Stamped on every row and diffed by `eval:compare`, which warns on a mixed pair — the SDK **silently downgrades** an unsupported level, so a green run is not proof the level applied |
 | `EVAL_BACKEND` | `subscription` | `openrouter` = route inference via OpenRouter |
 | `OPENROUTER_API_KEY` | — | required when `EVAL_BACKEND=openrouter` |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api` | point at `http://localhost:4000` for the LiteLLM proxy |

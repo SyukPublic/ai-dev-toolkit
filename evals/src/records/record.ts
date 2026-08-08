@@ -81,6 +81,12 @@ export function record(label: string, data: RecordData): void {
     // src/dsl/case.ts remains the only llmJudge caller (it passes no override).
     model: result.model,
     judge_model: EVAL_JUDGE_MODEL,
+    // The reasoning effort ASKED for (absent = the SDK's default for that model, which is what every
+    // row before this field was taken at). Same grouping hazard as `model` and `skill_refs`: an
+    // `EVAL_EFFORT=xhigh` probe lands in this same append-only file, and a rate that pools two effort
+    // levels is not a rate. Note the SDK silently downgrades an unsupported level, so this records the
+    // request, not the confirmed setting.
+    effort: result.effort,
     // WHAT was injected for a skill-tier row: SKILL.md alone, or SKILL.md plus its references/.
     // Recorded for the same reason `model` is — those are two different measurements for the 5 skills
     // that ship a references/ directory (fastify injects 177,440 chars against SKILL.md's 4,574), and

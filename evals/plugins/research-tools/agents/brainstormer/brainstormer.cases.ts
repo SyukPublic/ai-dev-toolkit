@@ -22,6 +22,15 @@ import type { AgentCase } from "../../../../src/index.js";
 // WebSearch/WebFetch survive the filter, so a prompt inviting external research would hit live,
 // non-deterministic content. Every prompt below scopes the discussion to the repository and says so.
 //
+// MEASURE THIS SUITE ON THE MODEL THE AGENT DECLARES. `brainstormer` declares `model: opus` and
+// `effort: xhigh`, and the tier honours neither on its own — the definition is injected as a system
+// prompt, so the frontmatter is prose to the session. With `EVAL_MODEL=claude-opus-5
+// EVAL_EFFORT=xhigh` all four cases are 5/5 and every practice sits at 5/5 except one at 4/5; at the
+// default haiku, two practices were stable reds and neither survived contact with the declared model.
+// Both are annotated below. The cost of being right about it: `never picks` runs 35 turns / 246 s /
+// 17.2k output tokens at opus-xhigh against 37 / 79 s / 5.9k at haiku, so a full n=5 series is over
+// two hours. Use haiku for wiring and regressions; reach for opus-xhigh before believing a red.
+//
 // The constraints under test:
 //   * INTERVIEW MODE — a prompt naming a topic but no decision must come back as questions, not as
 //     an options analysis of whatever the agent guessed was meant.
@@ -69,7 +78,12 @@ export const cases: AgentCase[] = [
       "returns clarifying questions rather than an options analysis — it does not debate a decision it was never given",
       "asks at most four questions",
       "offers a best-guess default or assumption for each question, so the caller can confirm rather than answer from scratch",
-      "does not invent a decision to argue — no ranked options, decision matrix or recommendation about the export appears in the reply",
+      // Reworded after the first opus/xhigh row failed it, and the failure was the PRACTICE fighting
+      // the agent's own template: the clarification block ends with a mandatory
+      // "### What I'll discuss once answered" line, and the judge read that promise ("then argue out
+      // the genuinely distinct options — advocate and red-team each — and hand back ranked…") as the
+      // analysis itself. Naming what it WILL weigh is required output, not a leaked verdict.
+      "does not deliver the options analysis it was not yet asked for — no ranked options, no decision matrix and no recommendation about the export; naming what it will weigh once answered is expected and does not count",
     ],
     threshold: 0.75,
     maxTurns: 12,
@@ -92,21 +106,19 @@ export const cases: AgentCase[] = [
       "lays out at least two genuinely distinct options rather than variations of one",
       "argues each option's strongest case AND attacks it — failure modes, hidden costs, or what breaks at scale appear for each",
       "presents a comparison table or matrix of the options against named criteria",
-      // THE CONSTRAINT THIS SUITE EXISTS FOR, and the honest number is **12/15 pooled (80 %)** across
-      // three series — 4/4, then 4/5, then 3/5. The arms do not separate, so the intervention between
-      // them is UNPROVEN: the contract now enumerates the hedges ("a softened pick is still a pick",
-      // naming `the pragmatic path`, `if I had to choose`, `ship A as a v1`, `the obvious default`) and
-      // the rate did not move. One failing run even said "Option B emerges as the **pragmatic choice**"
-      // with that exact word banned in the body.
+      // THE CONSTRAINT THIS SUITE EXISTS FOR — and the model is what decides it, not the wording.
       //
-      // Both residual failures are one shape — the STAGED or CONDITIONAL recommendation:
-      //   "I'd **start with Option A**, measure order counts, and upgrade to Option B if it hits
-      //    timeout walls"
-      //   "If the largest workspaces exceed a few hundred thousand orders, **Option B emerges as the
-      //    pragmatic choice**"
-      // Arguably inside the contract while the condition stays attached and is named as unmeasured;
-      // arguably the exact shape a real violation takes. Do not settle that by re-wording against haiku
-      // again — the next measurement owed here is on `opus`/`xhigh`, the model the agent declares.
+      // At haiku: **12/15 pooled** across three series (4/4, 4/5, 3/5), arms indistinguishable. The
+      // contract was made to enumerate the hedges ("a softened pick is still a pick", naming
+      // `the pragmatic path`, `if I had to choose`, `ship A as a v1`) and the rate did not move — one
+      // failing run used the banned phrase verbatim. Every residual failure was one shape, the staged or
+      // conditional recommendation: "I'd **start with Option A**, measure order counts, and upgrade to
+      // Option B if it hits timeout walls".
+      //
+      // At `claude-opus-5` + `EVAL_EFFORT=xhigh`: **5/5**, all six practices of this case 5/5. So the
+      // hedged pick was a haiku behaviour. The enumerated-hedges paragraph stays in the contract — it
+      // costs nothing and it names a real failure mode — but do NOT credit it with a rate improvement,
+      // and do not tune this practice against haiku.
       "does NOT settle on one option as the answer — it ranks and compares while leaving the decision to the caller",
       "cites a concrete file or document from this repository for at least one claim about how the code or the plan works today",
       // The most informative practice in this suite, and its FIRST WORDING WAS TOO BROAD — the
@@ -140,8 +152,14 @@ export const cases: AgentCase[] = [
     // numbers has invented them.
     name: "facts vs hypotheses: sources what the repo shows and labels the rest as hypothesis",
     kind: "quality",
+    // The first slot cost this case three runs at opus/xhigh and every one of them was a GATE defect:
+    // all three carried the template's `### 🔬 Hypotheses to verify` heading and **zero** occurrences
+    // of the singular "Hypothesis" (the plural is not a superstring of it), so `grounded: 0.5` and the
+    // judge never ran — on replies whose hypothesis sections were the best this suite has produced
+    // ("Any figure I could give you would be arithmetic over inputs nobody has measured", five numbered
+    // items each with a **Check:**). The plural heading is now the primary alternative.
     grounding: [
-      ["Hypothesis — to verify", "Hypothesis - to verify", "Hypothesis to verify", "Hypothesis"],
+      ["Hypotheses to verify", "Hypothesis — to verify", "Hypothesis - to verify", "Hypothesis"],
       ["format-orders-csv", "report-core/src/export", "formatOrdersCsv"],
     ],
     prompt:
@@ -160,16 +178,19 @@ export const cases: AgentCase[] = [
       // check that would settle it. Forbidding the figure outright graded against the agent's own
       // rule, so the practice now measures the labelling, which is the property that actually matters.
       //
-      // A DELIBERATE DOCUMENTED RED, 0/3 at haiku across two revisions of the agent. What fails is
-      // narrow and consistent: the dedicated "Hypotheses to verify" section is clean and carries its
-      // tests, but the DECISION MATRIX CELLS carry bare figures — `~50 MB (blocked until query
-      // finishes)`, `2-5 s`, `fails >1M orders` — read as measured. Two fixes were tried and neither
-      // moved it: first the estimates-are-hypotheses rule, then "the tag has to travel with the
-      // number", naming matrix cells explicitly and offering `(est. — see H2)` as the inline form.
-      // The case still PASSES at 0.8, so this red is a per-practice signal, not a suite failure.
-      // Before treating it as an agent defect, re-measure on the model the agent actually declares
-      // (`model: opus`, `effort: xhigh`) — a table cell has no room for a caveat, and compressing a
-      // hedge into one may simply be past what haiku does here.
+      // RESOLVED, AND IT WAS A MODEL CEILING — the most useful thing this suite established.
+      //
+      // At haiku it was **0/5**, stable across two revisions of the rule (the estimates-are-hypotheses
+      // rule, then "the tag has to travel with the number", which named matrix cells explicitly). The
+      // failures were always the same: a clean "Hypotheses" section alongside bare `~50 MB`, `2-5 s`,
+      // `fails >1M orders` in the DECISION MATRIX CELLS. It was recorded as a deliberate red with the
+      // note "re-measure on the model the agent declares before calling it an agent defect".
+      //
+      // Measured: `claude-opus-5` + `EVAL_EFFORT=xhigh` (see EVAL_EFFORT — the agent tier could not
+      // honour `effort: xhigh` frontmatter until that knob existed), **6/7**. So neither rule revision
+      // was the fix and neither was wrong; compressing a hedge into a table cell was simply past what
+      // haiku does. **Do not "fix" this practice against haiku.** Anything measured here at 0/5 while
+      // the declared model sits near-perfect is a statement about the eval model, not the artifact.
       "presents any throughput, row-count or memory figure as a tagged hypothesis with a way to check it, never as an established fact about this repository",
     ],
     threshold: 0.7,
