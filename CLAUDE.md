@@ -215,9 +215,20 @@ Two adaptations worth knowing before debugging a surprising result:
   **unnamespaced** there, unlike a real install. `skillEngaged` accepts both the bare and
   `plugin:skill` forms, so cases stay valid either way.
 
-Safety invariants: sessions run with `bypassPermissions`, so tool grants are the only guard —
-`workflowTask` hard-blocks `Write`/`Edit`/`Bash` via `disallowedTools`, `agentTask` strips
-mutating tools. On the subscription backend any `ANTHROPIC_API_KEY` is removed from the child
+Safety invariants: sessions run with `bypassPermissions`, so `disallowedTools` is the only guard —
+an allow-list is inert under bypass. Both tiers block the same set (`src/config.ts`, pinned by
+`src/config.test.ts`): every tool that can **run a command** (`Bash`, `PowerShell`, `Monitor`),
+**write a file**, or **reach outside the process** (`Artifact`, `SendMessage`, `Workflow`,
+`RemoteTrigger`, `Cron*`). `WebSearch`/`WebFetch` are deliberately NOT blocked — `researcher`
+depends on them.
+
+**That list is a denylist of names, and a tool the CLI adds is unblocked until someone adds its
+name.** This has already cost real files: `Bash` was blocked and `Monitor` was not, and Monitor
+runs a `command` "in the same shell environment as Bash" — so a workflow-tier session wrote eleven
+files into the assembled workspace. When the CLI gains a tool, ask whether it can run, write, or
+reach out; `evals/sandbox-write.eval.ts` asserts the invariant end-to-end.
+
+On the subscription backend any `ANTHROPIC_API_KEY` is removed from the child
 process so runs never silently bill API tokens. Every run appends to
 `results/records.jsonl`; `results/` is gitignored, append-only, and always safe to delete.
 
