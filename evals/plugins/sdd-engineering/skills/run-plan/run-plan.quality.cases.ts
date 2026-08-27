@@ -3,10 +3,12 @@ import { fixtureReader } from "../../../../src/index.js";
 
 const fx = fixtureReader(import.meta.url);
 
-// Content tier: SKILL.md plus its references/ directory is injected, no tools. This measures the
-// orchestration RULES the skill states — which is the part of run-plan a general model does not
-// have. Whether the skill ACTIVATES is a separate question, measured in run-plan.cases.ts and
-// currently unresolved (see .plans).
+// Content tier: SKILL.md is injected, no tools — references/ only under EVAL_SKILL_REFS=1, which
+// is OFF by default (the payload flip in 6ec27f8). Measured as neutral for this suite: `dirty`
+// occurs 3 times in the body against 0 in references/, so the guidance these cases score lives in
+// SKILL.md. This measures the orchestration RULES the skill states — the part of run-plan a
+// general model does not have. Whether the skill ACTIVATES is a separate question, measured in
+// run-plan.cases.ts and settled there (sonnet, 8/8 positive / 0/8 false-engage).
 //
 // The triage case is the sharpest thing in this suite. Stage 5's table is explicit about routing,
 // and two rows cut against a model's instinct to fix everything it was shown:
