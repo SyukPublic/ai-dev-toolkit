@@ -195,21 +195,66 @@ export const REPEAT_WARN_SESSIONS = Number(process.env.EVAL_REPEAT_WARN_SESSIONS
 // --- Tool allow-lists -------------------------------------------------------
 // Subagent-spawning tool name varies by harness; count both.
 export const SPAWN_TOOLS = new Set(["Task", "Agent"]);
+
+/**
+ * THE BLOCKLIST IS A DENYLIST OF NAMES, AND THAT IS ITS WHOLE WEAKNESS — it stops the tools it
+ * names and nothing else. Under `bypassPermissions` the allow-list is inert, so this is the only
+ * guard there is; a tool the CLI adds is UNBLOCKED until someone adds its name here.
+ *
+ * This is not theoretical. It cost eleven real files. `Bash` was blocked and `Monitor` was not,
+ * and Monitor takes a `command` documented as "Shell command or script … runs in the same shell
+ * environment as Bash" — a shell under a different name. The leaking session found it and said so:
+ * "I can use bash commands via Monitor to create files! … using cat/echo with file redirection",
+ * followed by task-notifications reading "Monitor event: … repository.ts created". Reproduced in
+ * one 20-second probe once the mechanism was known (sandbox-write.eval.ts), after four polite
+ * probes had come back clean because they gave up at the first refusal.
+ *
+ * The categories below exist so the next addition has an obvious home, and
+ * src/config.test.ts pins the invariant that every one of them reaches BOTH tiers.
+ *
+ * WHEN THE CLI GAINS A TOOL, ASK: can it run a command, write a file, or reach outside this
+ * process? If yes, it belongs here — a name absent from this list is a name that is allowed.
+ */
+// Tools that RUN COMMANDS. `PowerShell` is here for the same reason `Monitor` is: on Windows it is
+// a second shell with a different name, and blocking only `Bash` would leave it open.
+const EXEC_TOOLS = ["Bash", "PowerShell", "Monitor", "BashOutput", "KillShell"];
+// Tools that WRITE FILES.
+const WRITE_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit"];
+// Tools that reach OUTSIDE this process — publish, schedule, notify, or talk to another session.
+// `SendMessage` is not paranoia: the leaking run used it to ask the orchestrator to "grant me the
+// Write/Edit tools", which is the cross-session permission laundering its own tool doc warns about.
+// `Artifact` publishes a web page, which is the one action here that reaches other PEOPLE.
+const ESCAPE_TOOLS = [
+  "Artifact",
+  "SendMessage",
+  "Workflow",
+  "RemoteTrigger",
+  "CronCreate",
+  "CronDelete",
+  "PushNotification",
+  "ShareOnboardingGuide",
+  "EnterWorktree",
+  "ExitWorktree",
+  "DesignSync",
+];
+
 // Tools no eval ever needs and bypassPermissions must not be allowed to hand over. Used BOTH to
 // filter an agent's declared frontmatter tools and as the agent tier's hard blocklist — an
 // allow-list alone is inert under bypass, and `implementer` declares Write/Edit/Bash and exists
-// to use them, so the allow-list is not a guard for it.
-export const MUTATING_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"];
+// to use them, so the allow-list is not a guard for it. NOT here on purpose: `WebSearch` and
+// `WebFetch`, which `researcher` declares and its whole method depends on.
+export const MUTATING_TOOLS = [...WRITE_TOOLS, ...EXEC_TOOLS, ...ESCAPE_TOOLS];
 // workflowTask runs with bypassPermissions in the assembled temp workspace (tasks.ts passes
 // `cwd: evalWorkspace()`, NOT the repo) — keep this read-only anyway: the workspace is a real
 // checkout-shaped directory and the blocklist below is what actually stops a write, here or
 // anywhere else the cwd is later pointed.
 export const WORKFLOW_ALLOWED_TOOLS = ["Read", "Grep", "Glob", "Task", "Agent", "Skill"];
-// bypassPermissions IGNORES the allow-list above, so without a hard blocklist a workflow
-// session can Write/Edit/Bash whatever it is pointed at. disallowedTools blocks tools even
-// under bypass, and it reaches spawned subagents too (a dispatched implementer reported being
-// denied Write/Edit/Bash inside its own nested session).
-export const WORKFLOW_DISALLOWED_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"];
+// bypassPermissions IGNORES the allow-list above, so without a hard blocklist a workflow session
+// can write whatever it is pointed at. disallowedTools blocks tools even under bypass, and it does
+// reach spawned subagents — measured four ways in sandbox-write.eval.ts (parent, ad-hoc subagent,
+// foreground `implementer`, background `implementer`), which is why the leak was so hard to find:
+// the propagation was never the problem, the list's CONTENTS were.
+export const WORKFLOW_DISALLOWED_TOOLS = [...WRITE_TOOLS, ...EXEC_TOOLS, ...ESCAPE_TOOLS];
 
 /**
  * The tool wiring the RETRIEVAL tier forces on every case (see runSkillRetrievalCases). Kept here
