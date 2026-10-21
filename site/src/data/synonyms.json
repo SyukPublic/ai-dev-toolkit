@@ -11,5 +11,6 @@
   ["mcp", "server", "integration", "tool"],
   ["refactor", "refactoring", "cleanup", "simplify"],
   ["brainstorm", "brainstorming", "discuss", "discussion", "options", "alternatives"],
-  ["decision", "decide", "trade-off", "tradeoff", "adr", "decision-matrix"]
+  ["decision", "decide", "trade-off", "tradeoff", "adr", "decision-matrix"],
+  ["dpdk", "dataplane", "data-plane", "packet-processing", "packet", "kernel-bypass", "nic", "pmd", "mbuf", "mempool", "hugepages", "numa"]
 ]

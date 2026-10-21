@@ -37,6 +37,13 @@
       "description": "Spec-driven development workflow: spec, plan, implement, verify - with run orchestration and retro tooling",
       "category": "development",
       "author": { "name": "Roman Halas" }
+    },
+    {
+      "name": "dataplane-engineering",
+      "source": "./plugins/dataplane-engineering",
+      "description": "DPDK dataplane C/C++ engineering skill: hot-path packet-processing code, mbuf-ownership and performance review, mempool/queue sizing, and evidence-first tuning of systems that miss their packets-per-second target",
+      "category": "development",
+      "author": { "name": "Roman Halas" }
     }
   ]
 }

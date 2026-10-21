@@ -28,8 +28,9 @@ Then install a plugin:
 | [research-tools](plugins/research-tools/README.md) | `researcher` — read-only codebase/web investigation with structured reports; `brainstormer` — pre-decision option exploration with a ranked decision matrix | — |
 | [architecture-review](plugins/architecture-review/README.md) | `architecture-reviewer` — read-only layering/dependency-direction auditor | engineering-paved-path |
 | [sdd-engineering](plugins/sdd-engineering/README.md) | Spec-driven development workflow: spec → plan → implement → verify → retro | all three above |
+| [dataplane-engineering](plugins/dataplane-engineering/README.md) | `dpdk-dataplane-engineering` — DPDK dataplane C/C++ engineering: hot-path code, mbuf-ownership and performance review, mempool/queue sizing, evidence-first tuning; three read-only helper scripts | — |
 
-Plugins declare their dependencies in their manifests, and Claude Code resolves and installs them for you — installing `sdd-engineering` pulls in the other three. The full picture, including the runtime composition graph, is in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
+Plugins declare their dependencies in their manifests, and Claude Code resolves and installs them for you — installing `sdd-engineering` pulls in the three plugins it composes. `dataplane-engineering` stands alone: it targets a different stack (C/C++ packet processing) and is installed by name. The full picture, including the runtime composition graph, is in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
 
 ## Updating
 

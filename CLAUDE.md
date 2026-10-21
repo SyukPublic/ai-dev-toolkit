@@ -41,7 +41,7 @@ scripts/                          release automation (prepare-release, tag-relea
 docs/                             PLUGIN-GUIDELINES, RELEASES, SECURITY, DEPENDENCIES, COMPATIBILITY
 ```
 
-### The four plugins and how they compose
+### The five plugins and how they compose
 
 `engineering-paved-path` (8 stack skills) and `research-tools` (`researcher` +
 `brainstormer` agents) are leaves. `architecture-review` (`architecture-reviewer` agent)
@@ -50,6 +50,10 @@ depends on the paved path.
 `implementation-planner` → `implementer` / `test-writer` / `plan-verifier`, orchestrated by
 the `run-plan` skill, with `workflow-retro`, `engineering-insights`, and `mermaid-diagram`
 alongside.
+`dataplane-engineering` (`dpdk-dataplane-engineering` skill) is a standalone leaf for a
+different stack — C/C++ packet processing with DPDK. Nothing depends on it and it depends on
+nothing; it ships three read-only helper scripts under `skills/<name>/scripts/`, invoked through
+`${CLAUDE_SKILL_DIR}`, and no hooks or MCP servers.
 
 Two composition mechanisms that are easy to miss when editing agent definitions:
 
