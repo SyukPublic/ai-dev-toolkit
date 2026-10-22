@@ -57,8 +57,9 @@ candidates to inspect, not verdicts.
   sources for hot-path anti-patterns, ownership hazards and deprecated APIs. Run it first in
   every review; then read the code around each hit.
 - `python ${CLAUDE_SKILL_DIR}/scripts/dpdk_budget.py budget|mempool|descriptors ...`: cycles per
-  packet at a given link speed and packet size, mempool demand from the port/queue/lcore shape,
-  RX descriptor depth from the bandwidth-delay model. Quote its output in the answer.
+  packet at a given link speed and packet size, mempool demand from the port/queue/lcore shape
+  (`--n` checks an existing pool against it), RX descriptor depth from the bandwidth-delay model.
+  Quote its output in the answer.
 - `sh ${CLAUDE_SKILL_DIR}/scripts/dpdk_env_probe.sh`: read-only Linux host probe (hugepages per
   node, NIC NUMA node and driver binding, kernel-cmdline isolation, IOMMU, governor, DPDK
   version). Nothing is modified.
@@ -168,8 +169,9 @@ measurement on the same traffic.
 - Build: meson + ninja only since 20.11; apps link with `pkg-config --cflags --libs libdpdk`.
   Makefile-era examples are obsolete.
 - EAL: `-l`/`--lcores` and `-S` replace the deprecated `-c`/`-s` coremasks (deprecated 25.11).
-  `--numa-mem` is the name of the per-socket preallocation option. `--remap-lcore-ids` (25.11)
-  gives contiguous lcore ids.
+  `--numa-mem`/`--numa-limit` are the documented names (`--socket-mem`/`--socket-limit` still
+  parse as aliases). Gone from the option table: `-w` (use `-a`/`--allow`, `-b`/`--block`) and
+  `--master-lcore` (use `--main-lcore`). `--remap-lcore-ids` (25.11) gives contiguous lcore ids.
 - Lcore naming is main/worker since 20.11: `rte_get_main_lcore`, `RTE_LCORE_FOREACH_WORKER`.
 - Removed: KNI (23.11; use virtio-user or tap), the queue-stats fields `q_ipackets`,
   `q_opackets`, `q_errors` of `struct rte_eth_stats` (25.11; read xstats `rx_qN_packets`

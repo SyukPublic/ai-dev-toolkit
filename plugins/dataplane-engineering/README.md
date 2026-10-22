@@ -83,7 +83,7 @@ for them, and all three are read-only:
 | Script | What it does | Runtime |
 | ------ | ------------ | ------- |
 | `dpdk_static_scan.py` | Scans C/C++ sources for hot-path anti-patterns, ownership hazards and deprecated or removed APIs; prints candidates with line numbers (`--self-test` runs built-in samples). | Python 3.10+, standard library only |
-| `dpdk_budget.py` | Calculators: cycles per packet per core at a link speed and frame size, mempool demand from the port/queue/lcore shape with the cache-size rules of the DPDK version in use, RX descriptor depth from the bandwidth-delay model. | Python 3.10+, standard library only |
+| `dpdk_budget.py` | Calculators: cycles per packet per core at a link speed and frame size, mempool demand from the port/queue/lcore shape with the cache-size rules of the DPDK version in use (or a check of an existing pool size against that demand), RX descriptor depth from the bandwidth-delay model. | Python 3.10+, standard library only |
 | `dpdk_env_probe.sh` | Linux host probe: kernel command line and isolation, hugepages per NUMA node, governor, IOMMU and VFIO state, NICs with driver binding and NUMA node, installed DPDK and tools. Reads sysfs/procfs only. | POSIX `sh`; `lscpu`, `lspci`, `ethtool`, `pkg-config` used when present |
 
 None of them modifies files, loads modules, binds devices or needs network access.

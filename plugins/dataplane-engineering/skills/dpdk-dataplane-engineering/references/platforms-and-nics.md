@@ -118,8 +118,10 @@ each section are the sources and carry the exact BIOS menu paths and version flo
   accelerated for DPDK), the RDMA drivers loaded (`mlx4_ib`, `mlx5_ib` or `mana_ib` by SKU),
   `modprobe -a ib_uverbs` on each reboot, DPDK 22.11 LTS or newer.
 - Hugepages per node: `echo 1024 | sudo tee
-  /sys/devices/system/node/node*/hugepages/hugepages-2048kB/nr_hugepages`; GRUB changes go in
-  `/etc/config/grub.d` on Azure images.
+  /sys/devices/system/node/node*/hugepages/hugepages-2048kB/nr_hugepages`. For boot-time
+  settings, Microsoft's page says to edit files under `/etc/config/grub.d`; on Ubuntu images the
+  drop-in directory is `/etc/default/grub.d/`, where a cloud-image file overrides
+  `/etc/default/grub`. Confirm with `/proc/cmdline` after the reboot.
 - The VF and the netvsc interface share a MAC; only netvsc has the IP. `ethtool -i <vf>` gives
   the VF's PCI address; a DPDK app that grabs the management NIC's VF kills the SSH session
   (serial console to recover).

@@ -20,7 +20,8 @@ Initial release.
 - Three read-only helper scripts, invoked through `${CLAUDE_SKILL_DIR}/scripts/`:
   `dpdk_static_scan.py` (heuristic C/C++ scan for hot-path anti-patterns, ownership hazards and
   deprecated APIs; candidates, not verdicts), `dpdk_budget.py` (cycle budget per packet, mempool
-  demand, RX descriptor depth from the bandwidth-delay model) and `dpdk_env_probe.sh` (Linux
+  demand or a check of an existing pool against it, RX descriptor depth from the
+  bandwidth-delay model) and `dpdk_env_probe.sh` (Linux
   host probe: hugepages per node, NIC NUMA node and driver, kernel-cmdline isolation, IOMMU,
   governor, DPDK version). Python scripts use the standard library only; the shell script is
   POSIX `sh`. Nothing runs automatically and nothing writes to the host.

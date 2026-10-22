@@ -91,8 +91,10 @@ Work through the anti-pattern table in SKILL.md; additionally:
 - Deprecated or removed APIs: `rte_atomicNN_*`, KNI (gone in 23.11; virtio-user or tap),
   master/slave lcore names (`rte_get_master_lcore`, `RTE_LCORE_FOREACH_SLAVE`, `SKIP_MASTER`),
   pre-21.11 macro names (`PKT_RX_*`, `DEV_TX_OFFLOAD_*`, `ETH_RSS_*`), `rte_eth_stats` queue
-  fields (`q_ipackets` and friends, gone in 25.11), `-c` / `-s` coremasks in run scripts,
-  Makefile builds.
+  fields (`q_ipackets` and friends, gone in 25.11), `-c` / `-s` coremasks in run scripts
+  (deprecated), `-w` and `--master-lcore` (removed: `-a`/`--allow`, `--main-lcore`), Makefile
+  builds. Not removed: `--socket-mem` / `--socket-limit` still parse as aliases of
+  `--numa-mem` / `--numa-limit`.
 - A pool created with `SOCKET_ID_ANY` on a multi-socket target.
 - Per-lcore arrays sized by anything other than `RTE_MAX_LCORE`.
 

@@ -3,6 +3,7 @@
 
     python dpdk_budget.py budget --link 100G --pkt 64 --ghz 3.0 --cores 4
     python dpdk_budget.py mempool --ports 2 --rxq 4 --rxd 1024 --txq 4 --txd 1024 --lcores 4
+    python dpdk_budget.py mempool --ports 1 --rxq 8 --rxd 512 --txq 8 --txd 512 --lcores 4 --cache 0 --n 4096
     python dpdk_budget.py descriptors --rate 148.8 --gap-us 50 --cores 4
     python dpdk_budget.py descriptors --rate 10 --cores 2 --rxd 1024
     python dpdk_budget.py --self-test
@@ -10,7 +11,8 @@
 budget       cycles per packet per core at a link speed and frame size (line rate counts the
              20-byte preamble, SFD and inter-frame gap on the wire).
 mempool      mbuf pool demand from the port/queue/descriptor/lcore shape (the l3fwd formula plus
-             in-flight stages), with the cache_size constraints of the DPDK version in use.
+             in-flight stages), with the cache_size constraints of the DPDK version in use; --n
+             evaluates an existing pool size instead of recommending one.
 descriptors  RX descriptor depth from the bandwidth-delay model used in Arm's Neoverse V2 DPDK
              analysis (descriptors = rate x service gap / cores), or the gap a depth tolerates.
 """
@@ -117,10 +119,24 @@ def cmd_mempool(a: argparse.Namespace) -> int:
         print(f"  extra (rings, reassembly, TX buffers, clones) = {d['extra']}")
     print(f"  demand = {d['demand']}")
 
-    n = max(8192, round_up(d["demand"] * (1 + a.headroom), max(a.cache, 1)))
-    print(f"recommended n = max(8192, demand x {1 + a.headroom:.2f} rounded up to a multiple of cache_size) = {n}")
-    per_socket = "" if a.sockets == 1 else f" per socket ({a.sockets} sockets: one pool each, sized for the ports and lcores on that socket)"
-    print(f"  create it with rte_pktmbuf_pool_create(name, {n}, {a.cache}, priv, data_room, socket_id){per_socket}")
+    recommended = max(8192, round_up(d["demand"] * (1 + a.headroom), max(a.cache, 1)))
+    if a.n is not None:
+        n = a.n
+        gap = d["demand"] - n
+        if gap > 0:
+            print(f"given n = {n}: SHORT by {gap} objects ({gap / d['demand']:.0%} of the demand): "
+                  "the pool runs dry under load and rx_nombuf climbs")
+        else:
+            print(f"given n = {n}: covers the demand with {-gap} objects ({-gap / d['demand']:.0%}) to spare")
+        if n <= d["rx_descriptors"]:
+            print(f"  the RX descriptors alone ({d['rx_descriptors']}) {'equal' if n == d['rx_descriptors'] else 'exceed'} "
+                  "the pool: nothing is left for packets in flight, TX rings or lcore caches")
+        print(f"recommended n for comparison = max(8192, demand x {1 + a.headroom:.2f} rounded up to a multiple of cache_size) = {recommended}")
+    else:
+        n = recommended
+        print(f"recommended n = max(8192, demand x {1 + a.headroom:.2f} rounded up to a multiple of cache_size) = {n}")
+        per_socket = "" if a.sockets == 1 else f" per socket ({a.sockets} sockets: one pool each, sized for the ports and lcores on that socket)"
+        print(f"  create it with rte_pktmbuf_pool_create(name, {n}, {a.cache}, priv, data_room, socket_id){per_socket}")
 
     major, minor = version_tuple(a.dpdk)
     problems = []
@@ -233,6 +249,7 @@ def main(argv: list[str]) -> int:
     m.add_argument("--headroom", type=float, default=0.2, help="safety margin over the demand (default 0.2)")
     m.add_argument("--sockets", type=int, default=1, help="NUMA sockets the ports/lcores span (default 1)")
     m.add_argument("--dpdk", default="25.11", help="DPDK version whose cache_size rules apply (default 25.11)")
+    m.add_argument("--n", type=int, default=None, help="evaluate an existing pool size against the demand instead of recommending one")
     m.add_argument("--priv", type=int, default=0, help="per-mbuf private area in bytes")
     m.add_argument("--data-room", type=int, default=DEFAULT_DATAROOM, help=f"data room incl. headroom (default {DEFAULT_DATAROOM})")
 
