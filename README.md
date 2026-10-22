@@ -32,6 +32,24 @@ Then install a plugin:
 
 Plugins declare their dependencies in their manifests, and Claude Code resolves and installs them for you — installing `sdd-engineering` pulls in the three plugins it composes. `dataplane-engineering` stands alone: it targets a different stack (C/C++ packet processing) and is installed by name. The full picture, including the runtime composition graph, is in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
 
+## Permission prompts
+
+Claude Code keeps installed plugins in its plugin cache (`~/.claude/plugins/cache/`), outside your project. Skills read their `references/` files from there on demand, and `dataplane-engineering` also runs its bundled helper scripts. In the default permission mode, Claude Code therefore asks before:
+
+- **Reading a skill's reference file.** Each read asks, unless you allow the skill's `references` directory for the rest of the session. To skip these prompts for this marketplace, allow reads of its cache in your user or project settings:
+
+  ```json
+  {
+    "permissions": {
+      "allow": ["Read(~/.claude/plugins/cache/ai-dev-toolkit/**)"]
+    }
+  }
+  ```
+
+- **Running a bundled script.** Each run asks. Every plugin README states what the plugin executes, and the scripts shipped here are read-only. The dialog's "don't ask again for: `python *`" option would allow every Python command, not just these scripts.
+
+Auto mode makes these decisions without asking. A headless `claude -p` session cannot show a prompt, so it denies these reads and script runs unless you pre-approve them with `--allowedTools`.
+
 ## Updating
 
 Claude Code caches marketplaces and plugins locally. To pick up new releases:
