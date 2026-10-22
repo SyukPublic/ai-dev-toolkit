@@ -1,0 +1,23 @@
+{
+  "name": "dataplane-engineering",
+  "displayName": "Dataplane Engineering",
+  "version": "1.0.0",
+  "description": "DPDK dataplane C/C++ engineering skill: hot-path packet-processing code, mbuf-ownership and performance review, mempool/queue sizing, and evidence-first tuning of systems that miss their packets-per-second target",
+  "author": { "name": "Roman Halas" },
+  "license": "MIT",
+  "keywords": [
+    "dpdk",
+    "dataplane",
+    "packet-processing",
+    "kernel-bypass",
+    "c",
+    "cpp",
+    "performance",
+    "numa",
+    "hugepages",
+    "nic",
+    "pmd",
+    "networking"
+  ],
+  "metadata": { "minClaudeCodeVersion": "2.1.143" }
+}

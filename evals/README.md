@@ -20,7 +20,8 @@ evals/
     ├── engineering-paved-path/skills/{security,onion-architecture}/
     ├── architecture-review/agents/architecture-reviewer/
     ├── sdd-engineering/agents/spec-creator/
-    └── sdd-engineering/workflow/
+    ├── sdd-engineering/workflow/
+    └── dataplane-engineering/skills/dpdk-dataplane-engineering/
 ```
 
 Each suite is a trio: `<name>.eval.ts` (registration), `<name>.cases.ts` (prompts +

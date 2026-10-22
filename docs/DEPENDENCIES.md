@@ -15,6 +15,7 @@ flowchart TD
   EPP["engineering-paved-path<br/>8 stack skills"]
   RT["research-tools<br/>agents: researcher, brainstormer"]
   AR["architecture-review<br/>agent: architecture-reviewer"]
+  DPE["dataplane-engineering<br/>skill: dpdk-dataplane-engineering<br/><i>standalone - no edges</i>"]
 
   SDD -->|"^1.0.0"| EPP
   SDD -->|"^1.0.0"| RT
@@ -25,11 +26,17 @@ flowchart TD
   classDef epp fill:#d7ede4,stroke:#2f8f6f,color:#123527,stroke-width:1.5px;
   classDef rt  fill:#fdeacc,stroke:#c98a2b,color:#3d2a08,stroke-width:1.5px;
   classDef ar  fill:#e6dff5,stroke:#7a5fc0,color:#241a44,stroke-width:1.5px;
+  classDef dpe fill:#fbe3e3,stroke:#c0504d,color:#4a1414,stroke-width:1.5px;
   class SDD sdd
   class EPP epp
   class RT rt
   class AR ar
+  class DPE dpe
 ```
+
+`dataplane-engineering` is deliberately disconnected: it serves a different stack (C/C++ packet
+processing with DPDK), preloads nothing from `engineering-paved-path`, and nothing composes it.
+Install it by name.
 
 Claude Code resolves and installs these dependencies automatically, listing what
 it added at the end of the install output. Installing the top of the graph is
@@ -169,7 +176,8 @@ Read the current one from the manifest, or from `/api/index.json` on the
 | [engineering-paved-path](../plugins/engineering-paved-path/README.md) | 8 skills: react-best-practices, react-frontend-architecture, react-testing-library, next-best-practices, fastify-best-practices, onion-architecture, security, typescript-expert | — |
 | [research-tools](../plugins/research-tools/README.md) | `researcher` agent (read-only: code, config, git, web); `brainstormer` agent (pre-decision option exploration, docs-only write on request) | — |
 | [architecture-review](../plugins/architecture-review/README.md) | `architecture-reviewer` agent (read-only layering/boundary audit) | engineering-paved-path `^1.0.0` |
-| [sdd-engineering](../plugins/sdd-engineering/README.md) | agents: spec-creator, implementation-planner, implementer, test-writer, plan-verifier; skills: run-plan, workflow-retro, engineering-insights, mermaid-diagram | all three `^1.0.0` |
+| [sdd-engineering](../plugins/sdd-engineering/README.md) | agents: spec-creator, implementation-planner, implementer, test-writer, plan-verifier; skills: run-plan, workflow-retro, engineering-insights, mermaid-diagram | the three above, `^1.0.0` each |
+| [dataplane-engineering](../plugins/dataplane-engineering/README.md) | 1 skill: dpdk-dataplane-engineering (DPDK dataplane C/C++ engineering, with three read-only helper scripts) | — |
 
 Related conventions:
 

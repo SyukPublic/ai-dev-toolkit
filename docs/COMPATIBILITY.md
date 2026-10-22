@@ -16,7 +16,7 @@ older releases.
 
 ## Users: >= 2.1.143
 
-Two plugins declare dependencies — `sdd-engineering` on all three others,
+Two plugins declare dependencies — `sdd-engineering` on the three plugins it composes,
 `architecture-review` on `engineering-paved-path` (see
 [DEPENDENCIES.md](DEPENDENCIES.md)). The documented requirement for the
 enable/disable half of that machinery is:
@@ -26,7 +26,7 @@ enable/disable half of that machinery is:
 > require Claude Code v2.1.143 or later. Earlier versions enable or disable only
 > the named plugin and surface a `dependency-unsatisfied` error on the next load.
 
-The same version is the floor for `displayName`, which **all four** manifests
+The same version is the floor for `displayName`, which **all five** manifests
 set and which the authoring rules in `CLAUDE.md` require. Below 2.1.143 the
 field is ignored and the `/plugin` picker falls back to `name`.
 
